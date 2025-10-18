@@ -12,7 +12,8 @@ const BLOCKCHAIN_MODE_KEY = 'secsanta-blockchain-mode'; // 'mock' or 'real'
 
 /**
  * Check if blockchain mock mode is enabled
- * Priority: localStorage > env var
+ * Priority: localStorage > explicit default ('mock')
+ * IMPORTANT: Call this function dynamically, don't use as a constant
  */
 export function isBlockchainMockMode(): boolean {
   if (typeof window !== 'undefined') {
@@ -20,12 +21,15 @@ export function isBlockchainMockMode(): boolean {
     if (stored !== null) {
       return stored === 'mock';
     }
+    // Default to 'mock' if not set (matches DebugPanel default)
+    return true;
   }
-  // Default to mock if env var says debug mode
-  return process.env.NEXT_PUBLIC_FE_DEBUG_MODE === 'true';
+  // Server-side: default to mock mode
+  return true;
 }
 
-// For backwards compatibility
+// Deprecated: Use isBlockchainMockMode() function instead
+// This constant is evaluated once and won't update with localStorage
 export const DEBUG_MODE = isBlockchainMockMode();
 
 const STORAGE_KEY = 'secsanta_debug_pools';

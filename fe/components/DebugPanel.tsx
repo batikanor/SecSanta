@@ -13,17 +13,34 @@ export function DebugPanel() {
   const [copied, setCopied] = useState(false);
   const [importText, setImportText] = useState('');
   const [importError, setImportError] = useState('');
+  const [mounted, setMounted] = useState(false);
+
+  // Use constant defaults, will be updated from localStorage in useEffect
   const [storageMode, setStorageMode] = useState<'local' | 'vercel-kv'>('vercel-kv');
   const [blockchainMode, setBlockchainMode] = useState<'mock' | 'real'>('mock');
   const router = useRouter();
 
   useEffect(() => {
-    // Read current settings from localStorage
+    // Read from localStorage on mount (client-side only)
     const savedStorage = localStorage.getItem(STORAGE_MODE_KEY) as 'local' | 'vercel-kv';
     const savedBlockchain = localStorage.getItem(BLOCKCHAIN_MODE_KEY) as 'mock' | 'real';
 
-    setStorageMode(savedStorage || 'vercel-kv');
-    setBlockchainMode(savedBlockchain || 'mock');
+    // Set defaults if not present
+    if (savedStorage) {
+      setStorageMode(savedStorage);
+    } else {
+      setStorageMode('vercel-kv');
+      localStorage.setItem(STORAGE_MODE_KEY, 'vercel-kv'); // Save default to localStorage
+    }
+
+    if (savedBlockchain) {
+      setBlockchainMode(savedBlockchain);
+    } else {
+      setBlockchainMode('mock');
+      localStorage.setItem(BLOCKCHAIN_MODE_KEY, 'mock'); // Save default to localStorage
+    }
+
+    setMounted(true);
   }, []);
 
   const toggleStorageMode = () => {
@@ -63,6 +80,11 @@ export function DebugPanel() {
       setImportError(result.error || 'Import failed');
     }
   };
+
+  // Prevent hydration mismatch by not rendering until mounted
+  if (!mounted) {
+    return null;
+  }
 
   if (!isOpen) {
     const isDevMode = storageMode === 'local' || blockchainMode === 'mock';

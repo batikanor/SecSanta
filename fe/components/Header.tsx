@@ -3,11 +3,23 @@
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import Link from 'next/link';
 import { Gift, Trash2 } from 'lucide-react';
-import { DEBUG_MODE, clearMockData } from '@/lib/debug-data';
+import { clearMockData } from '@/lib/debug-data';
 import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+
+const BLOCKCHAIN_MODE_KEY = 'secsanta-blockchain-mode';
 
 export function Header() {
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
+  const [isDebugMode, setIsDebugMode] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    // Read blockchain mode from localStorage
+    const mode = localStorage.getItem(BLOCKCHAIN_MODE_KEY);
+    setIsDebugMode(mode === 'mock' || mode === null); // default to mock
+  }, []);
 
   const handleClearData = async () => {
     if (confirm('Clear all debug data? This will remove all pools and reset the app.')) {
@@ -27,14 +39,14 @@ export function Header() {
             </div>
             <div>
               <h1 className="text-xl font-bold text-gray-900">SecSanta</h1>
-              {DEBUG_MODE && (
+              {mounted && isDebugMode && (
                 <span className="text-xs text-yellow-600 font-medium">DEBUG MODE</span>
               )}
             </div>
           </Link>
 
           <div className="flex items-center space-x-4">
-            {DEBUG_MODE && (
+            {mounted && isDebugMode && (
               <button
                 onClick={handleClearData}
                 className="text-xs px-3 py-1.5 text-gray-600 hover:text-red-600 border border-gray-300 hover:border-red-300 rounded-md transition-colors flex items-center gap-1"

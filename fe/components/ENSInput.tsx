@@ -4,7 +4,9 @@ import { useState, useEffect, useRef } from 'react';
 import { useEnsAddress } from 'wagmi';
 import { normalize } from 'viem/ens';
 import { isValidAddress, isValidEnsName } from '@/lib/utils';
-import { DEBUG_MODE, mockResolveEnsAddress } from '@/lib/debug-data';
+import { mockResolveEnsAddress } from '@/lib/debug-data';
+
+const BLOCKCHAIN_MODE_KEY = 'secsanta-blockchain-mode';
 
 interface ENSInputProps {
   value: string;
@@ -29,7 +31,14 @@ export function ENSInput({
 }: ENSInputProps) {
   const [inputValue, setInputValue] = useState(value);
   const [isEnsName, setIsEnsName] = useState(false);
+  const [isDebugMode, setIsDebugMode] = useState(true); // default to mock
   const onChangeRef = useRef(onChange);
+
+  // Check blockchain mode from localStorage
+  useEffect(() => {
+    const mode = localStorage.getItem(BLOCKCHAIN_MODE_KEY);
+    setIsDebugMode(mode === 'mock' || mode === null);
+  }, []);
 
   // Keep onChange ref up to date
   useEffect(() => {
@@ -46,13 +55,13 @@ export function ENSInput({
     name: isEnsName ? normalize(inputValue) : undefined,
     chainId: 1,
     query: {
-      enabled: !DEBUG_MODE && isEnsName,
+      enabled: !isDebugMode && isEnsName,
     },
   });
 
   // Update parent component when address is resolved
   useEffect(() => {
-    if (DEBUG_MODE && isEnsName) {
+    if (isDebugMode && isEnsName) {
       const mockAddress = mockResolveEnsAddress(inputValue);
       if (mockAddress) {
         onChangeRef.current(mockAddress);
@@ -62,7 +71,7 @@ export function ENSInput({
     } else if (isValidAddress(inputValue)) {
       onChangeRef.current(inputValue);
     }
-  }, [resolvedAddress, inputValue, isEnsName]);
+  }, [resolvedAddress, inputValue, isEnsName, isDebugMode]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
@@ -75,8 +84,8 @@ export function ENSInput({
     }
   };
 
-  const showResolvedAddress = isEnsName && (resolvedAddress || (DEBUG_MODE && mockResolveEnsAddress(inputValue)));
-  const resolvedAddr = DEBUG_MODE ? mockResolveEnsAddress(inputValue) : resolvedAddress;
+  const showResolvedAddress = isEnsName && (resolvedAddress || (isDebugMode && mockResolveEnsAddress(inputValue)));
+  const resolvedAddr = isDebugMode ? mockResolveEnsAddress(inputValue) : resolvedAddress;
 
   return (
     <div className="space-y-2">

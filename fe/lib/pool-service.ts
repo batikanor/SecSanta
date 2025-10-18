@@ -7,7 +7,7 @@
 
 import { Pool, CreatePoolFormData, JoinPoolFormData, Contributor } from '@/types/pool';
 import {
-  DEBUG_MODE,
+  isBlockchainMockMode,
   generateMockPoolId,
   getMockPools,
   addMockPool,
@@ -21,7 +21,7 @@ export class PoolService {
    * Fetch all pools
    */
   static async getPools(): Promise<Pool[]> {
-    if (DEBUG_MODE) {
+    if (isBlockchainMockMode()) {
       // Return mock data in debug mode
       await simulateTransactionDelay();
       return await getMockPools();
@@ -35,7 +35,7 @@ export class PoolService {
    * Get a specific pool by ID
    */
   static async getPool(poolId: string): Promise<Pool | null> {
-    if (DEBUG_MODE) {
+    if (isBlockchainMockMode()) {
       await simulateTransactionDelay();
       const pool = await getMockPool(poolId);
       return pool || null;
@@ -52,7 +52,7 @@ export class PoolService {
     data: CreatePoolFormData,
     creatorAddress: string
   ): Promise<{ success: boolean; poolId?: string; error?: string }> {
-    if (DEBUG_MODE) {
+    if (isBlockchainMockMode()) {
       await simulateTransactionDelay();
 
       const poolId = await generateMockPoolId();
@@ -97,7 +97,7 @@ export class PoolService {
     data: JoinPoolFormData,
     contributorAddress: string
   ): Promise<{ success: boolean; error?: string }> {
-    if (DEBUG_MODE) {
+    if (isBlockchainMockMode()) {
       await simulateTransactionDelay();
 
       const pool = await getMockPool(data.poolId);

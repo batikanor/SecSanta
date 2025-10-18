@@ -16,7 +16,7 @@ const API_BASE_URL = typeof window !== 'undefined'
 
 /**
  * Check if we should use Vercel KV (via API routes)
- * Priority: localStorage setting > env var
+ * Priority: localStorage setting > explicit default ('vercel-kv')
  */
 function shouldUseVercelKV(): boolean {
   if (typeof window !== 'undefined') {
@@ -24,9 +24,11 @@ function shouldUseVercelKV(): boolean {
     if (stored !== null) {
       return stored === 'vercel-kv';
     }
+    // Default to 'vercel-kv' if not set (matches DebugPanel default)
+    return true;
   }
-  // Default: use sync server if env var is set
-  return process.env.NEXT_PUBLIC_USE_SYNC_SERVER === 'true';
+  // Server-side: check env var, default to true
+  return process.env.NEXT_PUBLIC_USE_SYNC_SERVER !== 'false';
 }
 
 /**

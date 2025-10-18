@@ -1,15 +1,23 @@
 "use client";
 
-import { DEBUG_MODE } from "@/lib/debug-data";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { Gift, Lock, Sparkles, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAccount } from "wagmi";
+
+const BLOCKCHAIN_MODE_KEY = 'secsanta-blockchain-mode';
 
 export default function HomePage() {
   const { isConnected } = useAccount();
   const router = useRouter();
+  const [isDebugMode, setIsDebugMode] = useState(false);
+
+  useEffect(() => {
+    // Check blockchain mode from localStorage
+    const mode = localStorage.getItem(BLOCKCHAIN_MODE_KEY);
+    setIsDebugMode(mode === 'mock' || mode === null);
+  }, []);
 
   useEffect(() => {
     if (isConnected) {
@@ -37,7 +45,7 @@ export default function HomePage() {
             transparently. Powered by Ethereum, ENS, Zama.
           </p>
 
-          {DEBUG_MODE && (
+          {isDebugMode && (
             <div className="mb-6 inline-block px-4 py-2 bg-yellow-100 border border-yellow-300 rounded-lg">
               <p className="text-sm text-yellow-800 font-medium">
                 🔧 DEBUG MODE ACTIVE - Using mock data for development
