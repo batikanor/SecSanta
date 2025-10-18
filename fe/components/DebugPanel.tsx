@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Download, Upload, Copy, Check, ChevronDown, ChevronUp, Settings, Database, Network } from 'lucide-react';
+import { Download, Upload, Copy, Check, ChevronDown, ChevronUp, Settings, Database, Network, Lock } from 'lucide-react';
 import { exportPools, importPools, downloadPoolsAsFile, copyPoolsToClipboard } from '@/lib/demo-sync';
 import { useRouter } from 'next/navigation';
 import { type NetworkMode, NETWORK_CONFIG, getNetworkMode, setNetworkMode } from '@/lib/network-config';
+import { type PrivacyMode, PRIVACY_CONFIG, getPrivacyMode, setPrivacyMode, getAvailablePrivacyModes } from '@/lib/privacy-config';
 
 const STORAGE_MODE_KEY = 'secsanta-storage-mode'; // 'local' or 'vercel-kv'
 
@@ -18,12 +19,14 @@ export function DebugPanel() {
   // Use constant defaults, will be updated from localStorage in useEffect
   const [storageMode, setStorageMode] = useState<'local' | 'vercel-kv'>('vercel-kv');
   const [networkMode, setNetworkModeState] = useState<NetworkMode>('sepolia');
+  const [privacyMode, setPrivacyModeState] = useState<PrivacyMode>('none');
   const router = useRouter();
 
   useEffect(() => {
     // Read from localStorage on mount (client-side only)
     const savedStorage = localStorage.getItem(STORAGE_MODE_KEY) as 'local' | 'vercel-kv';
     const savedNetwork = getNetworkMode();
+    const savedPrivacy = getPrivacyMode();
 
     // Set defaults if not present
     if (savedStorage) {
@@ -34,6 +37,7 @@ export function DebugPanel() {
     }
 
     setNetworkModeState(savedNetwork);
+    setPrivacyModeState(savedPrivacy);
     setMounted(true);
   }, []);
 
@@ -47,6 +51,12 @@ export function DebugPanel() {
   const handleNetworkChange = (newMode: NetworkMode) => {
     setNetworkModeState(newMode);
     setNetworkMode(newMode);
+    window.location.reload();
+  };
+
+  const handlePrivacyChange = (newMode: PrivacyMode) => {
+    setPrivacyModeState(newMode);
+    setPrivacyMode(newMode);
     window.location.reload();
   };
 
@@ -96,6 +106,9 @@ export function DebugPanel() {
         <Settings className="w-4 h-4" />
         <span className="text-xs font-medium">
           {storageMode === 'local' ? 'LOCAL' : 'UPSTASH'} / {networkConfig.shortLabel}
+          {networkMode !== 'mock' && privacyMode !== 'none' && (
+            <> / {PRIVACY_CONFIG[privacyMode].shortLabel}</>
+          )}
         </span>
       </button>
     );
@@ -198,6 +211,62 @@ export function DebugPanel() {
             })}
           </div>
         </div>
+
+        {/* Privacy Mode Selector (only show in Sepolia/Mainnet, not Mock) */}
+        {networkMode !== 'mock' && (
+          <div className="pb-4 border-b">
+            <div className="flex items-center gap-2 mb-3">
+              <Lock className="w-4 h-4 text-gray-500" />
+              <div>
+                <p className="text-sm font-medium text-gray-700">Privacy Mode</p>
+                <p className="text-xs text-gray-500">
+                  {PRIVACY_CONFIG[privacyMode].description}
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              {(['none', 'iexec', 'zama'] as const).map((mode) => {
+                const config = PRIVACY_CONFIG[mode];
+                const isSelected = privacyMode === mode;
+                const isDisabled = !config.enabled;
+                const colorClasses = {
+                  none: 'border-gray-500 bg-gray-50 text-gray-700',
+                  iexec: 'border-purple-500 bg-purple-50 text-purple-700',
+                  zama: 'border-indigo-500 bg-indigo-50 text-indigo-700',
+                };
+
+                return (
+                  <button
+                    key={mode}
+                    onClick={() => !isDisabled && handlePrivacyChange(mode)}
+                    disabled={isDisabled}
+                    className={`w-full text-left px-3 py-2 rounded-md border-2 transition-all ${
+                      isSelected
+                        ? colorClasses[mode]
+                        : isDisabled
+                        ? 'border-gray-200 bg-gray-50 text-gray-400 opacity-50 cursor-not-allowed'
+                        : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">{config.label}</span>
+                      <div className="flex items-center gap-2">
+                        {isDisabled && <span className="text-xs">Coming Soon</span>}
+                        {isSelected && !isDisabled && (
+                          <div className={`w-2 h-2 rounded-full ${
+                            mode === 'none' ? 'bg-gray-500' : mode === 'iexec' ? 'bg-purple-500' : 'bg-indigo-500'
+                          }`} />
+                        )}
+                      </div>
+                    </div>
+                    <p className="text-xs mt-0.5 opacity-75">{config.description}</p>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Warning message */}
         {(storageMode === 'local' || networkMode !== 'mainnet') && (

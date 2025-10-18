@@ -3,7 +3,7 @@
  * Manages network modes: Mock, Sepolia, Mainnet
  */
 
-export type NetworkMode = 'mock' | 'sepolia' | 'mainnet';
+export type NetworkMode = 'mock' | 'sepolia' | 'arbitrum-sepolia' | 'mainnet';
 
 export interface NetworkConfig {
   label: string;
@@ -31,6 +31,14 @@ export const NETWORK_CONFIG: Record<NetworkMode, NetworkConfig> = {
     ensSupported: true,
     description: 'Ethereum testnet - Free testing with real blockchain',
   },
+  'arbitrum-sepolia': {
+    label: 'Arbitrum Sepolia',
+    shortLabel: 'ARB-SEP',
+    color: 'purple',
+    chainId: 421614,
+    ensSupported: false, // Arbitrum Sepolia doesn't support ENS
+    description: 'Arbitrum Sepolia Testnet - Required for iExec DataProtector encryption',
+  },
   mainnet: {
     label: 'Ethereum Mainnet',
     shortLabel: 'MAINNET',
@@ -50,7 +58,7 @@ const NETWORK_MODE_KEY = 'secsanta-network-mode';
 export function getNetworkMode(): NetworkMode {
   if (typeof window !== 'undefined') {
     const stored = localStorage.getItem(NETWORK_MODE_KEY) as NetworkMode;
-    if (stored && (stored === 'mock' || stored === 'sepolia' || stored === 'mainnet')) {
+    if (stored && (stored === 'mock' || stored === 'sepolia' || stored === 'arbitrum-sepolia' || stored === 'mainnet')) {
       return stored;
     }
     // Default to Sepolia (safe for testing)

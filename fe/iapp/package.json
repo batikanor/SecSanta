@@ -1,0 +1,24 @@
+{
+  "name": "secsanta-pool-computation",
+  "version": "1.0.0",
+  "description": "iExec TEE application for computing SecSanta pool totals on encrypted contributions",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "keywords": [
+    "iexec",
+    "tee",
+    "confidential-computing",
+    "dataprotector",
+    "defi"
+  ],
+  "author": "SecSanta Team",
+  "license": "MIT",
+  "dependencies": {
+    "@iexec/dataprotector": "^2.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
