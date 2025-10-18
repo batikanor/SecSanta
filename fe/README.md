@@ -87,11 +87,22 @@ NEXT_PUBLIC_ENABLE_TESTNETS=true
 
 3. **Run development server**:
 ```bash
+# Recommended: Start with multi-browser sync (auto-kills ports 3000 & 3001)
+npm run dev:full
+
+# Or start only Next.js (no cross-browser sync)
 npm run dev
 ```
 
+The `dev:full` command automatically:
+- 🧹 Kills any processes on ports 3000 and 3001
+- 🎁 Starts sync server (port 3001) for cross-browser data sync
+- ⚡ Starts Next.js app (port 3000)
+
 4. **Open browser**:
 Navigate to [http://localhost:3000](http://localhost:3000)
+
+For multi-browser testing, see [START_HERE.md](./START_HERE.md)
 
 ## 🏗️ Architecture
 

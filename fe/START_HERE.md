@@ -12,9 +12,12 @@ Pools now sync automatically across ALL browsers (Chrome, Firefox, Safari, etc.)
 npm run dev:full
 ```
 
-This starts:
-1. **Sync Server** (port 3001) - Handles cross-browser data sync
-2. **Next.js App** (port 3000) - Your main app
+This **automatically**:
+1. 🧹 Kills any processes on ports 3000 and 3001
+2. 🎁 Starts **Sync Server** (port 3001) - Handles cross-browser data sync
+3. ⚡ Starts **Next.js App** (port 3000) - Your main app
+
+**No need to manually kill processes!** Just run the command.
 
 ---
 
@@ -128,12 +131,11 @@ Tab 1 + Tab 2 + Tab 3 = ✅ Works!
 
 **Solution:**
 ```bash
-# Kill any process on port 3001
-lsof -ti:3001 | xargs kill -9
-
-# Start again
+# Just run dev:full - it automatically kills processes!
 npm run dev:full
 ```
+
+The script automatically cleans up ports 3000 and 3001 before starting.
 
 ### "Want to start without sync server"
 

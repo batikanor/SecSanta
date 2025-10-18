@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "dev:full": "concurrently \"npm run server\" \"npm run dev\"",
+    "dev:full": "./start.sh",
     "server": "node server.js",
     "build": "next build",
     "start": "next start",
