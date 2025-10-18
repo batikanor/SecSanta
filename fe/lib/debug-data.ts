@@ -1,14 +1,32 @@
 /**
  * DEBUG MODE DATA
- * This file contains mock data for development when FE_DEBUG_MODE is true
- * When the backend/smart contracts are ready, set FE_DEBUG_MODE to false
+ * This file contains mock data for development
+ * Debug mode can be toggled via UI (stored in localStorage) or env var
  *
  * Uses localStorage to persist data across browser windows/tabs
  */
 
 import { Pool } from '@/types/pool';
 
-export const DEBUG_MODE = process.env.NEXT_PUBLIC_FE_DEBUG_MODE === 'true';
+const BLOCKCHAIN_MODE_KEY = 'secsanta-blockchain-mode'; // 'mock' or 'real'
+
+/**
+ * Check if blockchain mock mode is enabled
+ * Priority: localStorage > env var
+ */
+export function isBlockchainMockMode(): boolean {
+  if (typeof window !== 'undefined') {
+    const stored = localStorage.getItem(BLOCKCHAIN_MODE_KEY);
+    if (stored !== null) {
+      return stored === 'mock';
+    }
+  }
+  // Default to mock if env var says debug mode
+  return process.env.NEXT_PUBLIC_FE_DEBUG_MODE === 'true';
+}
+
+// For backwards compatibility
+export const DEBUG_MODE = isBlockchainMockMode();
 
 const STORAGE_KEY = 'secsanta_debug_pools';
 const COUNTER_KEY = 'secsanta_pool_counter';

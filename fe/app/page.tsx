@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import { useEffect } from 'react';
-import { useAccount } from 'wagmi';
-import { useRouter } from 'next/navigation';
-import { ConnectButton } from '@rainbow-me/rainbowkit';
-import { Gift, Users, Lock, Sparkles } from 'lucide-react';
-import { DEBUG_MODE } from '@/lib/debug-data';
+import { DEBUG_MODE } from "@/lib/debug-data";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { Gift, Lock, Sparkles, Users } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+import { useAccount } from "wagmi";
 
 export default function HomePage() {
   const { isConnected } = useAccount();
@@ -13,7 +13,7 @@ export default function HomePage() {
 
   useEffect(() => {
     if (isConnected) {
-      router.push('/dashboard');
+      router.push("/dashboard");
     }
   }, [isConnected, router]);
 
@@ -33,8 +33,8 @@ export default function HomePage() {
           </h1>
 
           <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-            Create anonymous gift pools with friends. Contribute secretly, gift transparently.
-            Powered by Ethereum and ENS.
+            Create anonymous gift pools with friends. Contribute secretly, gift
+            transparently. Powered by Ethereum, ENS, Zama.
           </p>
 
           {DEBUG_MODE && (
@@ -54,11 +54,11 @@ export default function HomePage() {
                 return (
                   <div
                     {...(!ready && {
-                      'aria-hidden': true,
+                      "aria-hidden": true,
                       style: {
                         opacity: 0,
-                        pointerEvents: 'none',
-                        userSelect: 'none',
+                        pointerEvents: "none",
+                        userSelect: "none",
                       },
                     })}
                   >
@@ -91,7 +91,9 @@ export default function HomePage() {
                 <Lock className="w-8 h-8 text-primary-600" />
               </div>
             </div>
-            <h3 className="text-xl font-semibold mb-2">Anonymous Contributions</h3>
+            <h3 className="text-xl font-semibold mb-2">
+              Anonymous Contributions
+            </h3>
             <p className="text-gray-600">
               Your contribution amount stays hidden until the pool is finalized.
             </p>
@@ -133,7 +135,8 @@ export default function HomePage() {
               <div>
                 <h4 className="font-semibold text-lg mb-1">Create a Pool</h4>
                 <p className="text-gray-600">
-                  Set up a gift pool with recipient, your contribution, and minimum participant threshold.
+                  Set up a gift pool with recipient, your contribution, and
+                  minimum participant threshold.
                 </p>
               </div>
             </div>
@@ -145,7 +148,8 @@ export default function HomePage() {
               <div>
                 <h4 className="font-semibold text-lg mb-1">Invite Friends</h4>
                 <p className="text-gray-600">
-                  Share the pool with friends. They can join and add their contributions anonymously.
+                  Share the pool with friends. They can join and add their
+                  contributions anonymously.
                 </p>
               </div>
             </div>
@@ -157,7 +161,8 @@ export default function HomePage() {
               <div>
                 <h4 className="font-semibold text-lg mb-1">Auto-Finalize</h4>
                 <p className="text-gray-600">
-                  When the threshold is met, the pool finalizes and funds transfer to the recipient.
+                  When the threshold is met, the pool finalizes and funds
+                  transfer to the recipient.
                 </p>
               </div>
             </div>

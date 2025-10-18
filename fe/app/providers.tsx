@@ -13,6 +13,7 @@ const queryClient = new QueryClient();
 // Custom avatar component that ensures ENS resolution
 const CustomAvatar: AvatarComponent = ({ address, ensImage, size }) => {
   return ensImage ? (
+    // eslint-disable-next-line @next/next/no-img-element
     <img
       src={ensImage}
       width={size}

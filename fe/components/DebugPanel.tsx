@@ -1,19 +1,47 @@
 'use client';
 
-import { useState } from 'react';
-import { Download, Upload, Copy, Check, ChevronDown, ChevronUp } from 'lucide-react';
-import { DEBUG_MODE } from '@/lib/debug-data';
+import { useState, useEffect } from 'react';
+import { Download, Upload, Copy, Check, ChevronDown, ChevronUp, Settings, Database } from 'lucide-react';
 import { exportPools, importPools, downloadPoolsAsFile, copyPoolsToClipboard } from '@/lib/demo-sync';
 import { useRouter } from 'next/navigation';
+
+const STORAGE_MODE_KEY = 'secsanta-storage-mode'; // 'local' or 'vercel-kv'
+const BLOCKCHAIN_MODE_KEY = 'secsanta-blockchain-mode'; // 'mock' or 'real'
 
 export function DebugPanel() {
   const [isOpen, setIsOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [importText, setImportText] = useState('');
   const [importError, setImportError] = useState('');
+  const [storageMode, setStorageMode] = useState<'local' | 'vercel-kv'>('vercel-kv');
+  const [blockchainMode, setBlockchainMode] = useState<'mock' | 'real'>('mock');
   const router = useRouter();
 
-  if (!DEBUG_MODE) return null;
+  useEffect(() => {
+    // Read current settings from localStorage
+    const savedStorage = localStorage.getItem(STORAGE_MODE_KEY) as 'local' | 'vercel-kv';
+    const savedBlockchain = localStorage.getItem(BLOCKCHAIN_MODE_KEY) as 'mock' | 'real';
+
+    setStorageMode(savedStorage || 'vercel-kv');
+    setBlockchainMode(savedBlockchain || 'mock');
+  }, []);
+
+  const toggleStorageMode = () => {
+    const newValue = storageMode === 'local' ? 'vercel-kv' : 'local';
+    setStorageMode(newValue);
+    localStorage.setItem(STORAGE_MODE_KEY, newValue);
+    window.location.reload();
+  };
+
+  const toggleBlockchainMode = () => {
+    const newValue = blockchainMode === 'mock' ? 'real' : 'mock';
+    setBlockchainMode(newValue);
+    localStorage.setItem(BLOCKCHAIN_MODE_KEY, newValue);
+    window.location.reload();
+  };
+
+  // Show export/import tools only when using local storage
+  const showDataTools = storageMode === 'local';
 
   const handleCopy = async () => {
     const success = await copyPoolsToClipboard();
@@ -37,30 +65,128 @@ export function DebugPanel() {
   };
 
   if (!isOpen) {
+    const isDevMode = storageMode === 'local' || blockchainMode === 'mock';
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-4 right-4 bg-yellow-500 text-white px-4 py-2 rounded-lg shadow-lg hover:bg-yellow-600 transition-colors flex items-center gap-2 z-40"
+        className={`fixed bottom-4 right-4 px-4 py-2 rounded-full shadow-lg transition-all hover:scale-105 flex items-center gap-2 z-50 ${
+          isDevMode
+            ? 'bg-yellow-500 text-white'
+            : 'bg-white text-gray-700 border-2 border-gray-300'
+        }`}
       >
-        <ChevronUp className="w-4 h-4" />
-        Debug Tools
+        <Settings className="w-4 h-4" />
+        {isDevMode ? (
+          <span className="text-xs font-medium">
+            {storageMode === 'local' ? 'LOCAL' : 'UPSTASH'} / {blockchainMode === 'mock' ? 'MOCK' : 'REAL'}
+          </span>
+        ) : (
+          'Settings'
+        )}
       </button>
     );
   }
 
   return (
-    <div className="fixed bottom-4 right-4 bg-white border-2 border-yellow-500 rounded-lg shadow-xl p-4 z-40 w-96 max-h-[80vh] overflow-y-auto">
+    <div className="fixed bottom-4 right-4 bg-white border-2 border-gray-300 rounded-lg shadow-xl p-4 z-50 w-96 max-h-[80vh] overflow-y-auto">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="font-bold text-yellow-800">Debug Tools</h3>
+        <h3 className="font-bold text-gray-900 flex items-center gap-2">
+          <Settings className="w-4 h-4" />
+          Debug Settings
+        </h3>
         <button
           onClick={() => setIsOpen(false)}
-          className="text-gray-500 hover:text-gray-700"
+          className="text-gray-400 hover:text-gray-600"
         >
           <ChevronDown className="w-5 h-5" />
         </button>
       </div>
 
       <div className="space-y-4">
+        {/* Toggle 1: Data Storage */}
+        <div className="pb-4 border-b">
+          <label className="flex items-center justify-between cursor-pointer">
+            <div className="flex items-center gap-2">
+              <Database className="w-4 h-4 text-gray-500" />
+              <div>
+                <p className="text-sm font-medium text-gray-700">Data Storage</p>
+                <p className="text-xs text-gray-500">
+                  {storageMode === 'local' ? 'localStorage (browser only)' : 'Upstash Redis (synced)'}
+                </p>
+              </div>
+            </div>
+            <div
+              onClick={toggleStorageMode}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                storageMode === 'local' ? 'bg-orange-500' : 'bg-blue-500'
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  storageMode === 'local' ? 'translate-x-1' : 'translate-x-6'
+                }`}
+              />
+            </div>
+          </label>
+          <div className="mt-2 text-xs text-gray-600 flex items-center justify-between px-1">
+            <span className={storageMode === 'local' ? 'font-semibold text-orange-600' : 'text-gray-400'}>
+              Local
+            </span>
+            <span className={storageMode === 'vercel-kv' ? 'font-semibold text-blue-600' : 'text-gray-400'}>
+              Upstash
+            </span>
+          </div>
+        </div>
+
+        {/* Toggle 2: Blockchain Mode */}
+        <div className="pb-4 border-b">
+          <label className="flex items-center justify-between cursor-pointer">
+            <div className="flex items-center gap-2">
+              <Settings className="w-4 h-4 text-gray-500" />
+              <div>
+                <p className="text-sm font-medium text-gray-700">Blockchain</p>
+                <p className="text-xs text-gray-500">
+                  {blockchainMode === 'mock' ? 'Mock data (demo)' : 'Real blockchain'}
+                </p>
+              </div>
+            </div>
+            <div
+              onClick={toggleBlockchainMode}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                blockchainMode === 'mock' ? 'bg-yellow-500' : 'bg-green-500'
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  blockchainMode === 'mock' ? 'translate-x-1' : 'translate-x-6'
+                }`}
+              />
+            </div>
+          </label>
+          <div className="mt-2 text-xs text-gray-600 flex items-center justify-between px-1">
+            <span className={blockchainMode === 'mock' ? 'font-semibold text-yellow-600' : 'text-gray-400'}>
+              Mock
+            </span>
+            <span className={blockchainMode === 'real' ? 'font-semibold text-green-600' : 'text-gray-400'}>
+              Real
+            </span>
+          </div>
+        </div>
+
+        {/* Warning message */}
+        {(storageMode === 'local' || blockchainMode === 'mock') && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded p-3">
+            <p className="text-xs text-yellow-800 font-medium mb-1">⚠️ Development Mode Active</p>
+            <p className="text-xs text-yellow-700">
+              {storageMode === 'local' && '• Data stored in browser localStorage only'}
+              {storageMode === 'local' && blockchainMode === 'mock' && <br />}
+              {blockchainMode === 'mock' && '• Using mock blockchain data'}
+            </p>
+          </div>
+        )}
+
+        {/* Only show panel tools when using local storage */}
+        {showDataTools && (<div className="space-y-4">
         {/* Export Section */}
         <div className="border-t pt-4">
           <h4 className="font-semibold text-sm mb-2">Share Pools Across Browsers</h4>
@@ -136,6 +262,7 @@ export function DebugPanel() {
             <li>Pools now synced! 🎉</li>
           </ol>
         </div>
+        </div>)}
       </div>
     </div>
   );

@@ -87,22 +87,19 @@ NEXT_PUBLIC_ENABLE_TESTNETS=true
 
 3. **Run development server**:
 ```bash
-# Recommended: Start with multi-browser sync (auto-kills ports 3000 & 3001)
-npm run dev:full
-
-# Or start only Next.js (no cross-browser sync)
+# Just run Next.js - API routes handle syncing!
 npm run dev
 ```
 
-The `dev:full` command automatically:
-- 🧹 Kills any processes on ports 3000 and 3001
-- 🎁 Starts sync server (port 3001) for cross-browser data sync
-- ⚡ Starts Next.js app (port 3000)
+The app now uses **Next.js API routes** for syncing:
+- ✅ Works locally with localStorage fallback
+- ✅ Works on Vercel with Vercel KV (Redis)
+- ✅ No separate Express server needed!
 
 4. **Open browser**:
 Navigate to [http://localhost:3000](http://localhost:3000)
 
-For multi-browser testing, see [START_HERE.md](./START_HERE.md)
+For deployment instructions, see **[DEPLOYMENT.md](./DEPLOYMENT.md)**
 
 ## 🏗️ Architecture
 

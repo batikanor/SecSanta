@@ -1,21 +1,42 @@
 /**
  * Sync Client
- * Connects to local sync server for automatic cross-browser syncing
+ * Uses Next.js API routes for cross-browser syncing
+ * Works both locally (with localStorage fallback) and on Vercel (with KV)
  */
 
 import { Pool } from '@/types/pool';
 
-const SYNC_SERVER_URL = process.env.NEXT_PUBLIC_SYNC_SERVER_URL || 'http://localhost:3001';
-const USE_SYNC_SERVER = process.env.NEXT_PUBLIC_USE_SYNC_SERVER === 'true';
+const STORAGE_MODE_KEY = 'secsanta-storage-mode'; // 'local' or 'vercel-kv'
+
+// In development: use localhost:3000/api (Next.js dev server)
+// In production: uses same domain /api (Vercel deployment)
+const API_BASE_URL = typeof window !== 'undefined'
+  ? window.location.origin
+  : (process.env.NEXT_PUBLIC_SYNC_SERVER_URL || 'http://localhost:3000');
+
+/**
+ * Check if we should use Vercel KV (via API routes)
+ * Priority: localStorage setting > env var
+ */
+function shouldUseVercelKV(): boolean {
+  if (typeof window !== 'undefined') {
+    const stored = localStorage.getItem(STORAGE_MODE_KEY);
+    if (stored !== null) {
+      return stored === 'vercel-kv';
+    }
+  }
+  // Default: use sync server if env var is set
+  return process.env.NEXT_PUBLIC_USE_SYNC_SERVER === 'true';
+}
 
 /**
  * Check if sync server is available
  */
 export async function isSyncServerAvailable(): Promise<boolean> {
-  if (!USE_SYNC_SERVER) return false;
+  if (!shouldUseVercelKV()) return false;
 
   try {
-    const response = await fetch(`${SYNC_SERVER_URL}/api/pools`);
+    const response = await fetch(`${API_BASE_URL}/api/pools`);
     return response.ok;
   } catch {
     return false;
@@ -26,10 +47,10 @@ export async function isSyncServerAvailable(): Promise<boolean> {
  * Get all pools from sync server
  */
 export async function syncGetPools(): Promise<Pool[]> {
-  if (!USE_SYNC_SERVER) return [];
+  if (!shouldUseVercelKV()) return [];
 
   try {
-    const response = await fetch(`${SYNC_SERVER_URL}/api/pools`);
+    const response = await fetch(`${API_BASE_URL}/api/pools`);
     if (!response.ok) throw new Error('Failed to fetch pools');
 
     const data = await response.json();
@@ -44,10 +65,10 @@ export async function syncGetPools(): Promise<Pool[]> {
  * Add pool to sync server
  */
 export async function syncAddPool(pool: Pool): Promise<boolean> {
-  if (!USE_SYNC_SERVER) return false;
+  if (!shouldUseVercelKV()) return false;
 
   try {
-    const response = await fetch(`${SYNC_SERVER_URL}/api/pools`, {
+    const response = await fetch(`${API_BASE_URL}/api/pools`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(pool),
@@ -64,10 +85,10 @@ export async function syncAddPool(pool: Pool): Promise<boolean> {
  * Update pool in sync server
  */
 export async function syncUpdatePool(poolId: string, updates: Partial<Pool>): Promise<boolean> {
-  if (!USE_SYNC_SERVER) return false;
+  if (!shouldUseVercelKV()) return false;
 
   try {
-    const response = await fetch(`${SYNC_SERVER_URL}/api/pools/${poolId}`, {
+    const response = await fetch(`${API_BASE_URL}/api/pools/${poolId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updates),
@@ -84,14 +105,14 @@ export async function syncUpdatePool(poolId: string, updates: Partial<Pool>): Pr
  * Generate pool ID from sync server
  */
 export async function syncGeneratePoolId(): Promise<string> {
-  if (!USE_SYNC_SERVER) return '';
+  if (!shouldUseVercelKV()) return '';
 
   try {
-    const response = await fetch(`${SYNC_SERVER_URL}/api/pool-id`);
+    const response = await fetch(`${API_BASE_URL}/api/pool-id`);
     if (!response.ok) throw new Error('Failed to generate pool ID');
 
     const data = await response.json();
-    return data.id;
+    return data.poolId; // Changed from data.id
   } catch (error) {
     console.error('Sync server error:', error);
     return '';
@@ -102,10 +123,10 @@ export async function syncGeneratePoolId(): Promise<string> {
  * Clear all data on sync server
  */
 export async function syncClearData(): Promise<boolean> {
-  if (!USE_SYNC_SERVER) return false;
+  if (!shouldUseVercelKV()) return false;
 
   try {
-    const response = await fetch(`${SYNC_SERVER_URL}/api/clear`, {
+    const response = await fetch(`${API_BASE_URL}/api/clear`, {
       method: 'POST',
     });
 
