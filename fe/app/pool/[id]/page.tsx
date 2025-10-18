@@ -293,7 +293,7 @@ export default function PoolDetailPage() {
                   className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-primary-500 focus:ring-primary-500 focus:outline-none focus:ring-2 transition-colors"
                 />
                 <p className="mt-2 text-sm text-gray-500">
-                  Your contribution amount will remain hidden until the pool finalizes
+                  🔒 Your contribution will be <strong>encrypted</strong> and <strong>never</strong> revealed publicly - even after finalization
                 </p>
               </div>
 
@@ -359,18 +359,9 @@ export default function PoolDetailPage() {
                   </div>
                 </div>
 
-                {pool.status === 'ongoing' && (
-                  <div className="text-sm text-gray-500 italic">
-                    Amount hidden
-                  </div>
-                )}
-
-                {pool.status === 'finalized' && (
-                  <div className="text-right">
-                    <p className="font-semibold text-secondary-600">{contributor.amount} ETH</p>
-                    <p className="text-xs text-gray-500">Contributed</p>
-                  </div>
-                )}
+                <div className="text-sm text-gray-500 italic">
+                  🔒 Amount encrypted
+                </div>
               </div>
             ))}
           </div>
@@ -381,12 +372,19 @@ export default function PoolDetailPage() {
             <h3 className="font-bold text-secondary-900 text-lg mb-2">
               🎉 Pool Finalized!
             </h3>
-            <p className="text-secondary-800">
+            <p className="text-secondary-800 mb-3">
               The total amount of <span className="font-bold">{pool.totalAmount} ETH</span> has
               been transferred to <ENSDisplay address={pool.recipientAddress} className="font-bold" />.
             </p>
+            <div className="bg-white/50 border border-secondary-300 rounded-lg p-4">
+              <p className="text-sm text-secondary-800 flex items-center gap-2">
+                <span className="text-lg">🔒</span>
+                <strong>Privacy Preserved:</strong> Individual contribution amounts remain encrypted.
+                Only the total is revealed using homomorphic encryption (FHE).
+              </p>
+            </div>
             {pool.finalizedAt && (
-              <p className="text-sm text-secondary-700 mt-2">
+              <p className="text-sm text-secondary-700 mt-3">
                 Finalized on {formatDate(pool.finalizedAt)}
               </p>
             )}

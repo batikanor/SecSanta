@@ -194,12 +194,14 @@ export default function CreatePoolPage() {
 
         {/* Info Box */}
         <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <h3 className="font-medium text-blue-900 mb-2">How it works</h3>
-          <ul className="text-sm text-blue-800 space-y-1">
-            <li>• Your contribution amount will be hidden until the pool finalizes</li>
-            <li>• Share the pool link with friends to let them join</li>
-            <li>• When enough people join, the total is transferred to the recipient</li>
-            <li>• All transactions are recorded on the blockchain</li>
+          <h3 className="font-medium text-blue-900 mb-2 flex items-center gap-2">
+            <span>🔒</span> Privacy-First Design
+          </h3>
+          <ul className="text-sm text-blue-800 space-y-2">
+            <li>• <strong>Encrypted Contributions:</strong> Your amount is encrypted and NEVER revealed publicly</li>
+            <li>• <strong>Homomorphic Encryption:</strong> Total is computed without decrypting individual amounts (using Zama FHE)</li>
+            <li>• <strong>Anonymous Suggestions:</strong> Gift ideas are shown without attribution</li>
+            <li>• <strong>Only Total Revealed:</strong> When finalized, only the sum is shown to the recipient</li>
           </ul>
         </div>
       </div>

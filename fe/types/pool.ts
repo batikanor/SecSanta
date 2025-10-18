@@ -8,7 +8,7 @@ export interface Pool {
   finalizationThreshold: number;
   contributors: Contributor[];
   status: 'ongoing' | 'finalized' | 'cancelled';
-  totalAmount?: string; // Hidden until finalized
+  totalAmount?: string; // Revealed when finalized (computed via FHE)
   createdAt: number;
   finalizedAt?: number;
 }
@@ -16,7 +16,7 @@ export interface Pool {
 export interface Contributor {
   address: string;
   ensName?: string;
-  amount: string; // Hidden until pool finalized
+  amount: string; // ALWAYS encrypted - never revealed publicly
   joinedAt: number;
   giftSuggestion?: string; // Each contributor's suggestion (not shown publicly)
 }
