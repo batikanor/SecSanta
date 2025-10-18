@@ -3,7 +3,6 @@
 import { useEnsName } from 'wagmi';
 import { normalize } from 'viem/ens';
 import { truncateAddress } from '@/lib/utils';
-import { DEBUG_MODE, mockResolveEnsName } from '@/lib/debug-data';
 
 interface ENSDisplayProps {
   address: string;
@@ -14,19 +13,20 @@ interface ENSDisplayProps {
 /**
  * Display ENS name if available, otherwise show truncated address
  * Integrates with ENS for bounty qualification
+ *
+ * ALWAYS uses real ENS resolution - even in DEBUG mode
  */
 export function ENSDisplay({ address, showFullAddress = false, className = '' }: ENSDisplayProps) {
-  // Use wagmi hook for ENS resolution (only in production mode)
+  // Use wagmi hook for REAL ENS resolution (always enabled)
   const { data: ensName } = useEnsName({
     address: address as `0x${string}`,
     chainId: 1, // ENS is on mainnet
     query: {
-      enabled: !DEBUG_MODE && !!address,
+      enabled: !!address, // Always enabled - we want real ENS even in DEBUG mode
     },
   });
 
-  // In debug mode, use mock ENS names
-  const displayName = DEBUG_MODE ? mockResolveEnsName(address) : ensName;
+  const displayName = ensName;
 
   if (displayName) {
     return (
