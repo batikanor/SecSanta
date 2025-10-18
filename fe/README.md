@@ -5,6 +5,7 @@ A decentralized application for creating anonymous gift pools with friends, powe
 ## 🎯 Overview
 
 SecSanta allows users to:
+
 - Create gift pools for recipients with ENS name support
 - Contribute anonymously (amounts hidden until finalization)
 - Auto-finalize when contribution threshold is met
@@ -15,18 +16,21 @@ SecSanta allows users to:
 This project is designed to qualify for multiple ETHRome 2025 bounties:
 
 ### ✅ ENS Bounty ($5,000)
+
 - **Full ENS Integration**: Using `useEnsName` and `useEnsAddress` hooks from wagmi
 - **ENS Display Component**: Shows ENS names for addresses when available
 - **ENS Input Component**: Accepts both ENS names and addresses, with automatic resolution
 - **Files**: `components/ENSDisplay.tsx`, `components/ENSInput.tsx`
 
 ### ✅ BuidlGuidl Bounty ($2,000)
+
 - **Modern Web3 Stack**: Built with Next.js 14, TypeScript, Tailwind CSS
 - **RainbowKit**: Wallet connection with excellent UX
 - **Wagmi v2**: Latest React hooks for Ethereum
 - **Clean Architecture**: Separation of concerns, reusable components
 
 ### ✅ Base Miniapp Potential ($5,000)
+
 - **Miniapp-Ready**: Can be adapted as a Farcaster miniapp
 - **Social Features**: Shareable pool links, group gifting mechanics
 - **Mobile-Friendly**: Responsive design works on all devices
@@ -34,19 +38,23 @@ This project is designed to qualify for multiple ETHRome 2025 bounties:
 ## 🚀 Features
 
 ### Debug Mode
+
 The app includes a comprehensive DEBUG mode for development:
+
 - Set `NEXT_PUBLIC_FE_DEBUG_MODE=true` in `.env.local`
 - Uses mock data and simulated transactions
 - Mock ENS resolution for testing
 - Easy transition to production when smart contracts are ready
 
 ### ENS Integration
+
 - Automatic ENS name resolution
 - Display ENS names throughout the UI
 - Accept ENS names in recipient address input
 - Fallback to truncated addresses when ENS is unavailable
 
 ### User Flow
+
 1. **Connect Wallet**: MetaMask/WalletConnect via RainbowKit
 2. **Create Pool**: Set name, recipient, contribution, threshold, gift idea
 3. **Share Pool**: Copy link and share with friends
@@ -56,23 +64,27 @@ The app includes a comprehensive DEBUG mode for development:
 ## 📦 Installation
 
 ### Prerequisites
+
 - Node.js 18+ and npm
 - MetaMask or other Web3 wallet
 
 ### Setup
 
 1. **Install dependencies**:
+
 ```bash
 cd fe
 npm install
 ```
 
 2. **Configure environment**:
+
 ```bash
 cp .env.example .env.local
 ```
 
 Edit `.env.local`:
+
 ```env
 # Debug mode - set to true for mock data
 NEXT_PUBLIC_FE_DEBUG_MODE=true
@@ -86,24 +98,27 @@ NEXT_PUBLIC_ENABLE_TESTNETS=true
 ```
 
 3. **Run development server**:
+
 ```bash
 # Just run Next.js - API routes handle syncing!
 npm run dev
 ```
 
 The app now uses **Next.js API routes** for syncing:
+
 - ✅ Works locally with localStorage fallback
 - ✅ Works on Vercel with Vercel KV (Redis)
 - ✅ No separate Express server needed!
 
 4. **Open browser**:
-Navigate to [http://localhost:3000](http://localhost:3000)
+   Navigate to [http://localhost:3000](http://localhost:3000)
 
 For deployment instructions, see **[DEPLOYMENT.md](./DEPLOYMENT.md)**
 
 ## 🏗️ Architecture
 
 ### Project Structure
+
 ```
 fe/
 ├── app/                    # Next.js 14 App Router
@@ -129,6 +144,7 @@ fe/
 ```
 
 ### Key Technologies
+
 - **Next.js 14**: App Router, Server Components
 - **TypeScript**: Full type safety
 - **Tailwind CSS**: Utility-first styling
@@ -139,20 +155,26 @@ fe/
 ## 🔧 Debug Mode
 
 ### How it Works
+
 When `NEXT_PUBLIC_FE_DEBUG_MODE=true`:
+
 - Mock data is used instead of blockchain calls
 - Simulated transaction delays (2 seconds)
 - Mock ENS resolution with predefined names
 - No wallet signatures required for testing
 
 ### Mock Data
+
 Edit `lib/debug-data.ts` to customize:
+
 - Mock wallet addresses
 - Mock ENS names
 - Initial pool data
 
 ### Transitioning to Production
+
 When your teammate has smart contracts ready:
+
 1. Set `NEXT_PUBLIC_FE_DEBUG_MODE=false` in `.env.local`
 2. Implement smart contract calls in `lib/pool-service.ts`
 3. Replace `throw new Error(...)` with actual contract interactions
@@ -160,12 +182,14 @@ When your teammate has smart contracts ready:
 ## 🎨 UI/UX
 
 ### Design System
+
 - **Primary Color**: Red gradient (Christmas/gift theme)
 - **Secondary Color**: Green (festive accent)
 - **Typography**: Inter font family
 - **Components**: Custom button styles, cards, badges
 
 ### Responsive Design
+
 - Mobile-first approach
 - Breakpoints: sm (640px), md (768px), lg (1024px)
 - Touch-friendly interfaces
@@ -173,11 +197,13 @@ When your teammate has smart contracts ready:
 ## 🔐 Security Considerations
 
 ### Current (Debug Mode)
+
 - No actual blockchain transactions
 - Mock data stored in memory
 - For development/demo purposes only
 
 ### Production (When Smart Contracts Ready)
+
 - Wallet signatures required
 - On-chain transaction validation
 - ENS resolution on mainnet
@@ -186,6 +212,7 @@ When your teammate has smart contracts ready:
 ## 🧪 Testing User Flow
 
 ### User 1 Flow (Create Pool)
+
 1. Connect wallet
 2. Navigate to "Create New Pool"
 3. Fill in form:
@@ -198,6 +225,7 @@ When your teammate has smart contracts ready:
 5. Share pool link with friends
 
 ### User 2 Flow (Join Pool)
+
 1. Click shared pool link
 2. Connect wallet (if not connected)
 3. View pool details
@@ -206,6 +234,7 @@ When your teammate has smart contracts ready:
 6. Wait for more contributors
 
 ### User 3 Flow (Finalize Pool)
+
 1. Click shared pool link
 2. Connect wallet
 3. Enter contribution: "0.2" ETH
@@ -240,12 +269,14 @@ static async createPool(data: CreatePoolFormData, creatorAddress: string) {
 ## 🌐 Deployment
 
 ### Vercel (Recommended)
+
 1. Push code to GitHub
 2. Import project in Vercel
 3. Set environment variables
 4. Deploy
 
 ### Environment Variables for Production
+
 ```env
 NEXT_PUBLIC_FE_DEBUG_MODE=false
 NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_production_id
@@ -256,6 +287,7 @@ NEXT_PUBLIC_ENABLE_TESTNETS=false
 ## 🤝 Contributing
 
 This is a hackathon project. Feel free to:
+
 - Add new features
 - Improve UI/UX
 - Optimize performance
@@ -270,6 +302,7 @@ MIT License - feel free to use this code for your projects
 Built with love for ETHRome 2025
 
 ### Key Dependencies
+
 - [Next.js](https://nextjs.org/)
 - [RainbowKit](https://rainbowkit.com/)
 - [Wagmi](https://wagmi.sh/)
