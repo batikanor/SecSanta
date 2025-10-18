@@ -1,12 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Download, Upload, Copy, Check, ChevronDown, ChevronUp, Settings, Database } from 'lucide-react';
+import { Download, Upload, Copy, Check, ChevronDown, ChevronUp, Settings, Database, Network } from 'lucide-react';
 import { exportPools, importPools, downloadPoolsAsFile, copyPoolsToClipboard } from '@/lib/demo-sync';
 import { useRouter } from 'next/navigation';
+import { type NetworkMode, NETWORK_CONFIG, getNetworkMode, setNetworkMode } from '@/lib/network-config';
 
 const STORAGE_MODE_KEY = 'secsanta-storage-mode'; // 'local' or 'vercel-kv'
-const BLOCKCHAIN_MODE_KEY = 'secsanta-blockchain-mode'; // 'mock' or 'real'
 
 export function DebugPanel() {
   const [isOpen, setIsOpen] = useState(false);
@@ -17,13 +17,13 @@ export function DebugPanel() {
 
   // Use constant defaults, will be updated from localStorage in useEffect
   const [storageMode, setStorageMode] = useState<'local' | 'vercel-kv'>('vercel-kv');
-  const [blockchainMode, setBlockchainMode] = useState<'mock' | 'real'>('mock');
+  const [networkMode, setNetworkModeState] = useState<NetworkMode>('sepolia');
   const router = useRouter();
 
   useEffect(() => {
     // Read from localStorage on mount (client-side only)
     const savedStorage = localStorage.getItem(STORAGE_MODE_KEY) as 'local' | 'vercel-kv';
-    const savedBlockchain = localStorage.getItem(BLOCKCHAIN_MODE_KEY) as 'mock' | 'real';
+    const savedNetwork = getNetworkMode();
 
     // Set defaults if not present
     if (savedStorage) {
@@ -33,13 +33,7 @@ export function DebugPanel() {
       localStorage.setItem(STORAGE_MODE_KEY, 'vercel-kv'); // Save default to localStorage
     }
 
-    if (savedBlockchain) {
-      setBlockchainMode(savedBlockchain);
-    } else {
-      setBlockchainMode('mock');
-      localStorage.setItem(BLOCKCHAIN_MODE_KEY, 'mock'); // Save default to localStorage
-    }
-
+    setNetworkModeState(savedNetwork);
     setMounted(true);
   }, []);
 
@@ -50,10 +44,9 @@ export function DebugPanel() {
     window.location.reload();
   };
 
-  const toggleBlockchainMode = () => {
-    const newValue = blockchainMode === 'mock' ? 'real' : 'mock';
-    setBlockchainMode(newValue);
-    localStorage.setItem(BLOCKCHAIN_MODE_KEY, newValue);
+  const handleNetworkChange = (newMode: NetworkMode) => {
+    setNetworkModeState(newMode);
+    setNetworkMode(newMode);
     window.location.reload();
   };
 
@@ -87,24 +80,23 @@ export function DebugPanel() {
   }
 
   if (!isOpen) {
-    const isDevMode = storageMode === 'local' || blockchainMode === 'mock';
+    const isDevMode = storageMode === 'local' || networkMode !== 'mainnet';
+    const networkConfig = NETWORK_CONFIG[networkMode];
+    const bgColor = networkMode === 'mock' ? 'bg-yellow-500' : networkMode === 'sepolia' ? 'bg-blue-500' : 'bg-green-500';
+
     return (
       <button
         onClick={() => setIsOpen(true)}
         className={`fixed bottom-4 right-4 px-4 py-2 rounded-full shadow-lg transition-all hover:scale-105 flex items-center gap-2 z-50 ${
           isDevMode
-            ? 'bg-yellow-500 text-white'
+            ? `${bgColor} text-white`
             : 'bg-white text-gray-700 border-2 border-gray-300'
         }`}
       >
         <Settings className="w-4 h-4" />
-        {isDevMode ? (
-          <span className="text-xs font-medium">
-            {storageMode === 'local' ? 'LOCAL' : 'UPSTASH'} / {blockchainMode === 'mock' ? 'MOCK' : 'REAL'}
-          </span>
-        ) : (
-          'Settings'
-        )}
+        <span className="text-xs font-medium">
+          {storageMode === 'local' ? 'LOCAL' : 'UPSTASH'} / {networkConfig.shortLabel}
+        </span>
       </button>
     );
   }
@@ -160,49 +152,84 @@ export function DebugPanel() {
           </div>
         </div>
 
-        {/* Toggle 2: Blockchain Mode */}
+        {/* Network Selector */}
         <div className="pb-4 border-b">
-          <label className="flex items-center justify-between cursor-pointer">
-            <div className="flex items-center gap-2">
-              <Settings className="w-4 h-4 text-gray-500" />
-              <div>
-                <p className="text-sm font-medium text-gray-700">Blockchain</p>
-                <p className="text-xs text-gray-500">
-                  {blockchainMode === 'mock' ? 'Mock data (demo)' : 'Real blockchain'}
-                </p>
-              </div>
+          <div className="flex items-center gap-2 mb-3">
+            <Network className="w-4 h-4 text-gray-500" />
+            <div>
+              <p className="text-sm font-medium text-gray-700">Network</p>
+              <p className="text-xs text-gray-500">
+                {NETWORK_CONFIG[networkMode].description}
+              </p>
             </div>
-            <div
-              onClick={toggleBlockchainMode}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                blockchainMode === 'mock' ? 'bg-yellow-500' : 'bg-green-500'
-              }`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  blockchainMode === 'mock' ? 'translate-x-1' : 'translate-x-6'
-                }`}
-              />
-            </div>
-          </label>
-          <div className="mt-2 text-xs text-gray-600 flex items-center justify-between px-1">
-            <span className={blockchainMode === 'mock' ? 'font-semibold text-yellow-600' : 'text-gray-400'}>
-              Mock
-            </span>
-            <span className={blockchainMode === 'real' ? 'font-semibold text-green-600' : 'text-gray-400'}>
-              Real
-            </span>
+          </div>
+
+          <div className="space-y-2">
+            {(['mock', 'sepolia', 'mainnet'] as const).map((mode) => {
+              const config = NETWORK_CONFIG[mode];
+              const isSelected = networkMode === mode;
+              const colorClasses = {
+                mock: 'border-yellow-500 bg-yellow-50 text-yellow-700',
+                sepolia: 'border-blue-500 bg-blue-50 text-blue-700',
+                mainnet: 'border-green-500 bg-green-50 text-green-700',
+              };
+
+              return (
+                <button
+                  key={mode}
+                  onClick={() => handleNetworkChange(mode)}
+                  className={`w-full text-left px-3 py-2 rounded-md border-2 transition-all ${
+                    isSelected
+                      ? colorClasses[mode]
+                      : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">{config.label}</span>
+                    {isSelected && (
+                      <div className={`w-2 h-2 rounded-full ${
+                        mode === 'mock' ? 'bg-yellow-500' : mode === 'sepolia' ? 'bg-blue-500' : 'bg-green-500'
+                      }`} />
+                    )}
+                  </div>
+                  <p className="text-xs mt-0.5 opacity-75">{config.description}</p>
+                </button>
+              );
+            })}
           </div>
         </div>
 
         {/* Warning message */}
-        {(storageMode === 'local' || blockchainMode === 'mock') && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded p-3">
-            <p className="text-xs text-yellow-800 font-medium mb-1">⚠️ Development Mode Active</p>
-            <p className="text-xs text-yellow-700">
+        {(storageMode === 'local' || networkMode !== 'mainnet') && (
+          <div className={`border rounded p-3 ${
+            networkMode === 'mock'
+              ? 'bg-yellow-50 border-yellow-200'
+              : networkMode === 'sepolia'
+              ? 'bg-blue-50 border-blue-200'
+              : 'bg-gray-50 border-gray-200'
+          }`}>
+            <p className={`text-xs font-medium mb-1 ${
+              networkMode === 'mock'
+                ? 'text-yellow-800'
+                : networkMode === 'sepolia'
+                ? 'text-blue-800'
+                : 'text-gray-800'
+            }`}>
+              {networkMode === 'mock' && '⚠️ Mock Mode Active'}
+              {networkMode === 'sepolia' && 'ℹ️ Testnet Mode Active'}
+              {networkMode === 'mainnet' && storageMode === 'local' && '⚠️ Local Storage Active'}
+            </p>
+            <p className={`text-xs ${
+              networkMode === 'mock'
+                ? 'text-yellow-700'
+                : networkMode === 'sepolia'
+                ? 'text-blue-700'
+                : 'text-gray-700'
+            }`}>
               {storageMode === 'local' && '• Data stored in browser localStorage only'}
-              {storageMode === 'local' && blockchainMode === 'mock' && <br />}
-              {blockchainMode === 'mock' && '• Using mock blockchain data'}
+              {storageMode === 'local' && networkMode !== 'mainnet' && <br />}
+              {networkMode === 'mock' && '• No blockchain - using mock data'}
+              {networkMode === 'sepolia' && '• Ethereum Sepolia testnet - Free testing'}
             </p>
           </div>
         )}

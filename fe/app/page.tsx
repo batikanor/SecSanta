@@ -5,18 +5,17 @@ import { Gift, Lock, Sparkles, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAccount } from "wagmi";
-
-const BLOCKCHAIN_MODE_KEY = 'secsanta-blockchain-mode';
+import { getNetworkMode } from "@/lib/network-config";
 
 export default function HomePage() {
   const { isConnected } = useAccount();
   const router = useRouter();
-  const [isDebugMode, setIsDebugMode] = useState(false);
+  const [isMockMode, setIsMockMode] = useState(false);
 
   useEffect(() => {
-    // Check blockchain mode from localStorage
-    const mode = localStorage.getItem(BLOCKCHAIN_MODE_KEY);
-    setIsDebugMode(mode === 'mock' || mode === null);
+    // Check network mode from localStorage
+    const mode = getNetworkMode();
+    setIsMockMode(mode === 'mock');
   }, []);
 
   useEffect(() => {
@@ -45,10 +44,10 @@ export default function HomePage() {
             transparently. Powered by Ethereum, ENS, Zama.
           </p>
 
-          {isDebugMode && (
+          {isMockMode && (
             <div className="mb-6 inline-block px-4 py-2 bg-yellow-100 border border-yellow-300 rounded-lg">
               <p className="text-sm text-yellow-800 font-medium">
-                🔧 DEBUG MODE ACTIVE - Using mock data for development
+                🔧 MOCK MODE ACTIVE - Using mock data for development
               </p>
             </div>
           )}

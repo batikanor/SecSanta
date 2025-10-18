@@ -5,8 +5,7 @@ import { useEnsAddress } from 'wagmi';
 import { normalize } from 'viem/ens';
 import { isValidAddress, isValidEnsName } from '@/lib/utils';
 import { mockResolveEnsAddress } from '@/lib/debug-data';
-
-const BLOCKCHAIN_MODE_KEY = 'secsanta-blockchain-mode';
+import { getNetworkMode, getChainId } from '@/lib/network-config';
 
 interface ENSInputProps {
   value: string;
@@ -31,13 +30,13 @@ export function ENSInput({
 }: ENSInputProps) {
   const [inputValue, setInputValue] = useState(value);
   const [isEnsName, setIsEnsName] = useState(false);
-  const [isDebugMode, setIsDebugMode] = useState(true); // default to mock
+  const [isMock, setIsMock] = useState(false);
   const onChangeRef = useRef(onChange);
 
-  // Check blockchain mode from localStorage
+  // Check network mode from localStorage
   useEffect(() => {
-    const mode = localStorage.getItem(BLOCKCHAIN_MODE_KEY);
-    setIsDebugMode(mode === 'mock' || mode === null);
+    const mode = getNetworkMode();
+    setIsMock(mode === 'mock');
   }, []);
 
   // Keep onChange ref up to date
@@ -50,18 +49,19 @@ export function ENSInput({
     setIsEnsName(isValidEnsName(inputValue));
   }, [inputValue]);
 
-  // Resolve ENS name to address (only in production mode)
+  // Resolve ENS name to address (not in mock mode)
+  const chainId = getChainId();
   const { data: resolvedAddress } = useEnsAddress({
     name: isEnsName ? normalize(inputValue) : undefined,
-    chainId: 1,
+    chainId: chainId || 1,
     query: {
-      enabled: !isDebugMode && isEnsName,
+      enabled: !isMock && isEnsName && chainId !== null,
     },
   });
 
   // Update parent component when address is resolved
   useEffect(() => {
-    if (isDebugMode && isEnsName) {
+    if (isMock && isEnsName) {
       const mockAddress = mockResolveEnsAddress(inputValue);
       if (mockAddress) {
         onChangeRef.current(mockAddress);
@@ -71,7 +71,7 @@ export function ENSInput({
     } else if (isValidAddress(inputValue)) {
       onChangeRef.current(inputValue);
     }
-  }, [resolvedAddress, inputValue, isEnsName, isDebugMode]);
+  }, [resolvedAddress, inputValue, isEnsName, isMock]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
@@ -84,8 +84,8 @@ export function ENSInput({
     }
   };
 
-  const showResolvedAddress = isEnsName && (resolvedAddress || (isDebugMode && mockResolveEnsAddress(inputValue)));
-  const resolvedAddr = isDebugMode ? mockResolveEnsAddress(inputValue) : resolvedAddress;
+  const showResolvedAddress = isEnsName && (resolvedAddress || (isMock && mockResolveEnsAddress(inputValue)));
+  const resolvedAddr = isMock ? mockResolveEnsAddress(inputValue) : resolvedAddress;
 
   return (
     <div className="space-y-2">

@@ -6,19 +6,18 @@ import { Gift, Trash2 } from 'lucide-react';
 import { clearMockData } from '@/lib/debug-data';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
-
-const BLOCKCHAIN_MODE_KEY = 'secsanta-blockchain-mode';
+import { getNetworkMode, type NetworkMode, NETWORK_CONFIG } from '@/lib/network-config';
 
 export function Header() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
-  const [isDebugMode, setIsDebugMode] = useState(false);
+  const [networkMode, setNetworkMode] = useState<NetworkMode>('sepolia');
 
   useEffect(() => {
     setMounted(true);
-    // Read blockchain mode from localStorage
-    const mode = localStorage.getItem(BLOCKCHAIN_MODE_KEY);
-    setIsDebugMode(mode === 'mock' || mode === null); // default to mock
+    // Read network mode from localStorage
+    const mode = getNetworkMode();
+    setNetworkMode(mode);
   }, []);
 
   const handleClearData = async () => {
@@ -39,18 +38,22 @@ export function Header() {
             </div>
             <div>
               <h1 className="text-xl font-bold text-gray-900">SecSanta</h1>
-              {mounted && isDebugMode && (
-                <span className="text-xs text-yellow-600 font-medium">DEBUG MODE</span>
+              {mounted && networkMode !== 'mainnet' && (
+                <span className={`text-xs font-medium ${
+                  networkMode === 'mock' ? 'text-yellow-600' : 'text-blue-600'
+                }`}>
+                  {NETWORK_CONFIG[networkMode].shortLabel}
+                </span>
               )}
             </div>
           </Link>
 
           <div className="flex items-center space-x-4">
-            {mounted && isDebugMode && (
+            {mounted && networkMode === 'mock' && (
               <button
                 onClick={handleClearData}
                 className="text-xs px-3 py-1.5 text-gray-600 hover:text-red-600 border border-gray-300 hover:border-red-300 rounded-md transition-colors flex items-center gap-1"
-                title="Clear all debug data"
+                title="Clear all mock data"
               >
                 <Trash2 className="w-3 h-3" />
                 <span className="hidden sm:inline">Clear Data</span>

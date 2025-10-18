@@ -1,36 +1,25 @@
 /**
  * DEBUG MODE DATA
  * This file contains mock data for development
- * Debug mode can be toggled via UI (stored in localStorage) or env var
+ * Network mode can be toggled via UI (stored in localStorage)
  *
  * Uses localStorage to persist data across browser windows/tabs
  */
 
 import { Pool } from '@/types/pool';
-
-const BLOCKCHAIN_MODE_KEY = 'secsanta-blockchain-mode'; // 'mock' or 'real'
+import { getNetworkMode } from './network-config';
 
 /**
- * Check if blockchain mock mode is enabled
- * Priority: localStorage > explicit default ('mock')
+ * Check if we're in mock mode (no blockchain)
  * IMPORTANT: Call this function dynamically, don't use as a constant
  */
-export function isBlockchainMockMode(): boolean {
-  if (typeof window !== 'undefined') {
-    const stored = localStorage.getItem(BLOCKCHAIN_MODE_KEY);
-    if (stored !== null) {
-      return stored === 'mock';
-    }
-    // Default to 'mock' if not set (matches DebugPanel default)
-    return true;
-  }
-  // Server-side: default to mock mode
-  return true;
+export function isMockMode(): boolean {
+  return getNetworkMode() === 'mock';
 }
 
-// Deprecated: Use isBlockchainMockMode() function instead
+// Deprecated: Use isMockMode() function instead
 // This constant is evaluated once and won't update with localStorage
-export const DEBUG_MODE = isBlockchainMockMode();
+export const DEBUG_MODE = isMockMode();
 
 const STORAGE_KEY = 'secsanta_debug_pools';
 const COUNTER_KEY = 'secsanta_pool_counter';
