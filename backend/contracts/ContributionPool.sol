@@ -196,7 +196,13 @@ contract ContributionPool is Ownable, SepoliaConfig {
         amountEnc = FHE.allowThis(amountEnc);
         amountEnc = FHE.allow(amountEnc, address(token));
 
-        euint64 transferred = token.confidentialTransferFrom(contributor, address(this), amountEnc);
+        euint64 transferred;
+        try token.confidentialTransferFrom(contributor, address(this), amountEnc) returns (euint64 value) {
+            transferred = value;
+        } catch (bytes memory revertData) {
+            revert PoolTokenTransferFailed(revertData);
+        }
+
         transferred = FHE.allowThis(transferred);
 
         euint64 newTotal = FHE.add(p.totalEnc, transferred);

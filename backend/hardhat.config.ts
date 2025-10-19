@@ -11,6 +11,8 @@ import "solidity-coverage";
 
 import "./tasks/accounts";
 import "./tasks/FHECounter";
+import "./tasks/mint";
+import "./tasks/approve";
 import * as dotenv from "dotenv";
 dotenv.config();
 
