@@ -1,0 +1,136 @@
+sequenceDiagram
+    participant User
+    participant Frontend as Frontend<br/>Next.js
+    participant ZamaSDK as Zama fhEVM SDK<br/>fe/lib/zama-service.ts
+    participant BCT as BirthdayConfidentialToken<br/>backend/contracts/BirthdayConfidentialToken.sol<br/>0xCee0c15B42EEb44491F588104bbC46812115dBB0
+    participant Pool as ContributionPool Contract<br/>backend/contracts/ContributionPool.sol<br/>0xE45d459Fc44c2B5326Bcef9F10028Bc252Bc2fd0
+    participant KMS as KMS Oracle<br/>Zama Gateway
+    participant Blockchain as Sepolia Testnet<br/>Chain: 11155111
+    participant Etherscan as Sepolia Etherscan<br/>sepolia.etherscan.io
+
+    Note over User,Etherscan: SETUP & MINTING
+
+    User->>Frontend: Connect Wallet (Sepolia)
+    Frontend->>ZamaSDK: Initialize fhEVM instance<br/>await createInstance(...)
+    ZamaSDK->>KMS: Generate FHE public key
+    KMS-->>ZamaSDK: Public key for encryption
+
+    Frontend->>BCT: Mint BCT tokens<br/>mint(amount)
+    BCT->>BCT: _mint(msg.sender, amount)<br/>Store as euint64 (encrypted balance)
+    BCT->>Blockchain: Update encrypted balances
+    Blockchain-->>Frontend: Tokens minted ✅
+
+    Note over User,Etherscan: POOL CREATION FLOW
+
+    User->>Frontend: Create Pool (BCT amount, recipient, threshold)
+    Frontend->>Frontend: Check privacy mode = 'zama'<br/>fe/lib/pool-service.ts:89
+
+    rect rgb(255, 225, 245)
+        Note over Frontend,ZamaSDK: Step 1: Client-Side FHE Encryption
+        Frontend->>ZamaSDK: Encrypt contribution amount<br/>instance.encrypt64(amount)
+        ZamaSDK->>ZamaSDK: Convert to euint64<br/>Using FHE public key
+        ZamaSDK-->>Frontend: Encrypted amount (euint64)
+    end
+
+    rect rgb(255, 182, 193)
+        Note over Frontend,Pool: Step 2: Approve Token Operator
+        Frontend->>BCT: approveOperator(poolAddress, encryptedAmount)
+        BCT->>BCT: _approve(owner, spender, encryptedAmount)
+        BCT->>BCT: Store encrypted allowance<br/>allowances[owner][spender] = euint64
+        BCT->>Blockchain: Emit Approval event
+    end
+
+    rect rgb(255, 200, 220)
+        Note over Frontend,Pool: Step 3: Create Pool On-Chain
+        Frontend->>Pool: createPool(name, recipient, minContributors, encryptedAmount)
+        Pool->>Pool: poolCounter++<br/>poolId = poolCounter
+        Pool->>Pool: Store pool metadata<br/>pools[poolId] = Pool{...}
+        Pool->>Pool: Add creator as contributor<br/>contributions[poolId][creator] = euint64
+        Pool->>Pool: encryptedTotal[poolId] = encryptedAmount
+        Pool->>BCT: transferFrom(creator, this, encryptedAmount)<br/>🔒 FHE transfer operation
+        BCT->>BCT: _transfer with encrypted amounts<br/>TFHE.sub(balance[from], amount)<br/>TFHE.add(balance[to], amount)
+        BCT->>Blockchain: Update encrypted state
+        Pool->>Blockchain: Emit PoolCreated event
+        Blockchain-->>Frontend: Transaction hash + poolId
+    end
+
+    Frontend->>Frontend: Store pool metadata in Upstash<br/>fe/lib/zama-pool-service.ts:56
+    Frontend-->>User: ✅ Pool created!<br/>Show Sepolia Etherscan link
+
+    Note over User,Etherscan: CONTRIBUTION FLOW
+
+    User->>Frontend: Join Pool (BCT amount)
+    Frontend->>Pool: hasContributed(poolId, address)<br/>Check if already contributed
+    Pool-->>Frontend: false ✅
+
+    rect rgb(255, 225, 245)
+        Note over Frontend,ZamaSDK: Step 4: Encrypt Contribution
+        Frontend->>ZamaSDK: Encrypt contribution<br/>instance.encrypt64(contributionAmount)
+        ZamaSDK-->>Frontend: euint64 encrypted value
+    end
+
+    rect rgb(255, 182, 193)
+        Note over Frontend,BCT: Step 5: Approve Tokens
+        Frontend->>BCT: approveOperator(poolAddress, encryptedAmount)
+        BCT->>BCT: Store encrypted allowance
+    end
+
+    rect rgb(255, 200, 220)
+        Note over Frontend,Pool: Step 6: Contribute On-Chain
+        Frontend->>Pool: contribute(poolId, encryptedAmount)
+        Pool->>Pool: require(!hasContributed[poolId][msg.sender])
+        Pool->>Pool: Store contribution<br/>contributions[poolId][contributor] = euint64
+        Pool->>Pool: Homomorphic addition:<br/>encryptedTotal = TFHE.add(encryptedTotal, encryptedAmount)
+        Pool->>BCT: transferFrom(contributor, this, encryptedAmount)
+        BCT->>BCT: 🔒 FHE transfer (amounts stay encrypted)
+        Pool->>Pool: contributorCount++
+        Pool->>Blockchain: Emit Contribution event
+        Blockchain-->>Frontend: Transaction hash
+    end
+
+    Frontend->>Frontend: Update pool in Upstash<br/>status = 'ready_to_finalize' (if threshold met)
+    Frontend-->>User: ✅ Contribution recorded!<br/>Show Etherscan link
+
+    Note over User,Etherscan: FINALIZATION & DECRYPTION FLOW
+
+    User->>Frontend: Finalize Pool
+    Frontend->>Frontend: Verify creator permissions<br/>fe/lib/zama-pool-service.ts:170
+
+    rect rgb(255, 220, 180)
+        Note over Frontend,KMS: Step 7: Request Decryption
+        Frontend->>Pool: finalizePool(poolId)
+        Pool->>Pool: require(contributorCount >= minContributors)
+        Pool->>Pool: Mark as finalized: isFinalized[poolId] = true
+        Pool->>KMS: Request decryption callback<br/>TFHE.allowTransient(encryptedTotal, Gateway)
+        Pool->>Blockchain: Emit DecryptionRequested event
+        Blockchain-->>Frontend: Transaction hash
+    end
+
+    Note over KMS: ⏳ KMS processes decryption<br/>(async callback, ~30-60 seconds)
+
+    rect rgb(200, 255, 200)
+        Note over KMS,Pool: Step 8: KMS Callback
+        KMS->>KMS: Decrypt euint64 in TEE<br/>Access encrypted total securely
+        KMS->>Pool: decryptionCallback(requestId, plainTotal)
+        Pool->>Pool: Store decrypted value<br/>totalPlain[poolId] = plainTotal
+        Pool->>BCT: transfer(recipient, plainTotal)<br/>Now using plaintext amount
+        BCT->>BCT: Standard ERC20 transfer<br/>balance[pool] -= plainTotal<br/>balance[recipient] += plainTotal
+        Pool->>Blockchain: Emit PoolFinalized event
+    end
+
+    Frontend->>Pool: Poll for totalPlain[poolId]<br/>fe/lib/zama-pool-service.ts:259
+    Pool-->>Frontend: Decrypted total amount
+
+    Frontend->>Frontend: Update pool in Upstash<br/>totalAmount = decrypted value<br/>status = 'finalized'
+    Frontend-->>User: 🎉 Pool finalized!<br/>Total: X BCT transferred<br/>Show Etherscan proof
+
+    Note over Pool,BCT: 🔒 PRIVACY GUARANTEE:<br/>Individual contributions remain encrypted (euint64)<br/>Only sum was decrypted via KMS<br/>contributions[poolId][address] = still encrypted!
+
+    rect rgb(255, 230, 230)
+        Note over User,Etherscan: VERIFICATION LINKS
+        User->>Etherscan: View pool creation tx
+        User->>Etherscan: View contribution txs
+        User->>Etherscan: View finalization tx
+        User->>Etherscan: View BCT contract<br/>0xCee0c15B42EEb44491F588104bbC46812115dBB0
+        User->>Etherscan: View Pool contract<br/>0xE45d459Fc44c2B5326Bcef9F10028Bc252Bc2fd0
+    end

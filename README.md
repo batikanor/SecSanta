@@ -1,8 +1,85 @@
-# 🎁 SecSanta - Secret Gift Pools
+# 🎁 SecSanta - Privacy-Preserving Gift Pools
 
-> Anonymous group gifting powered by Ethereum and ENS
+> Anonymous group gifting with encrypted contributions powered by iExec TEE and Zama FHE
 
 **ETHRome 2025 Hackathon Project**
+
+[Live Demo](https://secsanta.vercel.app) • [Documentation](./docs/)
+
+---
+
+## What is SecSanta?
+
+SecSanta enables groups to create anonymous gift contribution pools where individual amounts remain **cryptographically hidden** until finalization:
+
+1. **Create a pool** for a recipient (birthdays, farewells, celebrations)
+2. **Contributors join** with encrypted contributions - amounts stay hidden from everyone
+3. **Auto-finalize** when threshold is met - funds transfer to recipient
+4. **Privacy preserved** - individual amounts never revealed, only the total
+
+### The Problem
+
+Traditional group gifting platforms expose contribution amounts, creating:
+- **Social pressure** - people see what others contribute
+- **Bias and inequality** - larger contributions visible
+- **Privacy concerns** - financial information leaked
+
+### Our Solution
+
+Two privacy modes powered by cutting-edge cryptography:
+
+**🔐 iExec Mode** (Arbitrum Sepolia)
+- Client-side AES-256 encryption via DataProtector SDK
+- Encrypted data stored as NFTs on-chain
+- TEE (Trusted Execution Environment) computation
+- Contributions remain encrypted forever
+
+**🔐 Zama FHE Mode** (Sepolia)
+- Fully Homomorphic Encryption on smart contracts
+- On-chain encrypted computation
+- KMS oracle decryption at finalization
+- Confidential ERC20 tokens (BCT)
+
+---
+
+## 🏆 Prize Qualifications
+
+### iExec - $6,000 💰
+
+**Category**: Confidential DeFi using DataProtector
+
+**Our Implementation**:
+- ✅ DataProtector SDK integration for client-side encryption
+- ✅ Smart contract deployed on Arbitrum Sepolia (`0xEC5Db14bFE52cF395a8778D32c25E59a2bD364B8`)
+- ✅ Encrypted contribution data stored as NFTs
+- ✅ Real blockchain transactions with verification links
+- ✅ Pool creation, contribution, and finalization all on-chain
+- ✅ Transaction proofs visible on Arbiscan
+
+**Key Files**:
+- `fe/lib/iexec-dataprotector.ts` - DataProtector integration
+- `fe/lib/contract-service.ts` - Smart contract interactions
+- `fe/contracts/SecSantaPool.sol` - Contribution pool contract
+
+---
+
+### Zama - $5,000 💰
+
+**Category**: FHE-based confidential applications
+
+**Our Implementation**:
+- ✅ Zama fhEVM Relayer SDK integration
+- ✅ BirthdayConfidentialToken (BCT) deployed on Sepolia (`0xCee0c15B42EEb44491F588104bbC46812115dBB0`)
+- ✅ ContributionPool contract with FHE operations (`0xE45d459Fc44c2B5326Bcef9F10028Bc252Bc2fd0`)
+- ✅ On-chain encrypted arithmetic (homomorphic addition)
+- ✅ KMS oracle decryption at finalization
+- ✅ Confidential token transfers using operator approvals
+
+**Key Files**:
+- `fe/lib/zama-service.ts` - Zama FHE integration
+- `fe/lib/zama-pool-service.ts` - Pool service for FHE mode
+- `backend/contracts/BirthdayConfidentialToken.sol` - Confidential ERC20
+- `backend/contracts/ContributionPool.sol` - FHE contribution pool
 
 ---
 
@@ -16,401 +93,93 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000)
 
-**Default mode**: DEBUG (mock data, no blockchain required)
+**Privacy Mode Toggle**: Use the debug panel to switch between iExec and Zama modes
 
 ---
 
-## 📖 What is SecSanta?
-
-SecSanta is a decentralized application that enables groups of friends to create anonymous gift pools:
-
-- **Create a pool** for a recipient (using ENS names like `vitalik.eth`)
-- **Contribute anonymously** - amounts stay hidden until threshold is met
-- **Auto-finalize** when enough people join
-- **Full transparency** after finalization - all contributions revealed
-
-### The Problem
-Group gifting is common (birthdays, weddings, farewells), but current solutions either:
-- Lack privacy (everyone sees contributions)
-- Lack transparency (organizer has too much control)
-- Poor UX (cryptic wallet addresses)
-
-### Our Solution
-Blockchain ensures:
-- ✅ **Privacy until finalization** - no social pressure
-- ✅ **Guaranteed transparency** - all contributions revealed when pool completes
-- ✅ **ENS integration** - use `alice.eth` instead of `0x1234...`
-- ✅ **Trustless execution** - smart contract handles everything
-
----
-
-## 🏆 Bounty Targets
-
-This project qualifies for multiple ETHRome 2025 bounties:
-
-### Primary Targets
-
-1. **ENS - $5,000**
-   - Deep integration with `useEnsName` and `useEnsAddress` hooks
-   - ENS display throughout the UI
-   - ENS input with auto-resolution
-   - See: `fe/components/ENSDisplay.tsx`, `fe/components/ENSInput.tsx`
-
-2. **BuidlGuidl - $2,000**
-   - Modern Web3 stack (Next.js 14, Wagmi v2, RainbowKit)
-   - Clean, production-ready code
-   - Comprehensive documentation
-   - TypeScript for type safety
-
-### Secondary Targets
-
-3. **Base Miniapp - $5,000**
-   - Social-first design with viral mechanics
-   - Shareable pool links
-   - Mobile-responsive, miniapp-ready
-   - Can be adapted for Farcaster Frames
-
-4. **Privacy Bounties ($2k-6k)**
-   - Hidden contributions until finalization
-   - Can integrate iExec, Zama, or Enclave for enhanced privacy
-
-**Read more**: [BOUNTIES.md](./BOUNTIES.md)
-
----
-
-## 📁 Project Structure
-
-```
-SecSanta/
-├── fe/                        # Frontend (Next.js app)
-│   ├── app/                   # Next.js 14 App Router
-│   ├── components/            # React components
-│   ├── lib/                   # Services and utilities
-│   ├── types/                 # TypeScript types
-│   └── README.md              # Frontend docs
-├── BOUNTIES.md                # Bounty strategy guide
-├── DEMO_GUIDE.md              # Complete demo script
-├── INTEGRATION_GUIDE.md       # For smart contract team
-└── README.md                  # This file
-```
-
----
-
-## 🎬 Demo
-
-### User Flow
-
-**User 1** (Alice):
-1. Connects wallet → Shows `alice.eth`
-2. Creates pool → Recipient: `vitalik.eth`
-3. Sets contribution: 0.1 ETH, threshold: 3 people
-4. Shares pool link
-
-**User 2** (Bob):
-1. Opens pool link
-2. Sees pool (1/3 contributors)
-3. Joins with 0.15 ETH
-4. Contribution hidden
-
-**User 3** (Charlie):
-1. Opens pool link
-2. Joins with 0.2 ETH
-3. **Pool finalizes!**
-4. All amounts revealed: Total = 0.45 ETH → `vitalik.eth`
-
-**Read full script**: [DEMO_GUIDE.md](./DEMO_GUIDE.md)
-
----
-
-## 🔧 Technical Stack
+## 🔧 Technical Architecture
 
 ### Frontend
-- **Next.js 14** - React framework with App Router
-- **TypeScript** - Type safety
-- **Tailwind CSS** - Styling
-- **RainbowKit** - Wallet connection
-- **Wagmi v2** - React hooks for Ethereum
-- **Viem** - Ethereum library
-- **Lucide Icons** - Icon library
+- **Next.js 14** with App Router
+- **TypeScript** for type safety
+- **RainbowKit** + **Wagmi v2** for Web3 integration
+- **Tailwind CSS** for styling
 
-### Smart Contracts (To Be Integrated)
-- Solidity contracts for pool management
-- See [INTEGRATION_GUIDE.md](./INTEGRATION_GUIDE.md)
+### Smart Contracts
 
----
+**iExec Mode** (Arbitrum Sepolia):
+- SecSantaPool contract manages ETH contributions
+- iExec DataProtector stores encrypted amounts as NFTs
 
-## 🚀 Getting Started
+**Zama Mode** (Sepolia):
+- BirthdayConfidentialToken (BCT) - FHE-enabled ERC20
+- ContributionPool - Manages encrypted contributions with `euint64`
 
-### Prerequisites
-- Node.js 18+
-- npm or yarn
-- MetaMask or Web3 wallet
+### Privacy Comparison
 
-### Installation
-
-1. **Clone the repository**
-```bash
-git clone <repo-url>
-cd SecSanta/fe
-```
-
-2. **Install dependencies**
-```bash
-npm install
-```
-
-3. **Configure environment**
-```bash
-cp .env.example .env.local
-```
-
-Edit `.env.local`:
-```env
-# For development/demo
-NEXT_PUBLIC_FE_DEBUG_MODE=true
-
-# Get from https://cloud.walletconnect.com/
-NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_id_here
-
-NEXT_PUBLIC_CHAIN_ID=1
-NEXT_PUBLIC_ENABLE_TESTNETS=true
-```
-
-4. **Run development server**
-```bash
-npm run dev
-```
-
-5. **Open app**
-```
-http://localhost:3000
-```
+| Feature | iExec Mode | Zama Mode |
+|---------|------------|-----------|
+| Network | Arbitrum Sepolia | Sepolia |
+| Currency | ETH | BCT (confidential tokens) |
+| Encryption | Client-side AES-256 | On-chain FHE |
+| Storage | Off-chain (NFTs) | On-chain (encrypted) |
+| Computation | TEE workers | Smart contract homomorphic ops |
+| Decryption | Never | KMS oracle at finalization |
 
 ---
 
-## 🎯 Features
+## 🎯 Key Features
 
-### ENS Integration ⭐
-- Display ENS names instead of addresses
-- Input fields accept ENS names
-- Automatic resolution to addresses
-- Works on Ethereum mainnet
+### Privacy First
+- ✅ Dual privacy modes (iExec TEE + Zama FHE)
+- ✅ Encrypted contributions with cryptographic guarantees
+- ✅ Individual amounts never revealed publicly
+- ✅ Verifiable on-chain transactions
 
-### Privacy
-- Contribution amounts hidden until pool finalizes
-- No social pressure or bias
-- Full transparency after completion
+### User Experience
+- ✅ Clean, modern interface
+- ✅ Mobile-responsive design
+- ✅ Transaction verification links (Arbiscan/Etherscan)
+- ✅ Real-time pool progress tracking
+- ✅ One-click pool finalization
 
-### UX Excellence
-- Clean, modern interface
-- Mobile-responsive design
-- Smooth wallet connection
-- Real-time updates
-
-### Developer Experience
-- DEBUG mode for easy testing
-- Mock data system
-- Clean architecture
-- Comprehensive documentation
-
----
-
-## 🔍 DEBUG Mode
-
-The app includes a DEBUG mode for development without blockchain:
-
-**Enabled** (default):
-- Mock data and transactions
-- No wallet signatures needed
-- 2-second simulated delays
-- Perfect for demos and testing
-
-**Disabled** (production):
-- Real blockchain transactions
-- Smart contract integration required
-- See [INTEGRATION_GUIDE.md](./INTEGRATION_GUIDE.md)
-
-Toggle in `.env.local`:
-```env
-NEXT_PUBLIC_FE_DEBUG_MODE=true  # or false
-```
+### Production Ready
+- ✅ Deployed smart contracts on testnets
+- ✅ Full integration with both privacy SDKs
+- ✅ Comprehensive error handling
+- ✅ Transaction proof system
+- ✅ Live demo on Vercel
 
 ---
 
 ## 📚 Documentation
 
-- **[fe/README.md](./fe/README.md)** - Frontend setup and architecture
-- **[BOUNTIES.md](./BOUNTIES.md)** - Bounty strategy and talking points
-- **[DEMO_GUIDE.md](./DEMO_GUIDE.md)** - Complete demo script for judges
-- **[INTEGRATION_GUIDE.md](./INTEGRATION_GUIDE.md)** - Smart contract integration
-
----
-
-## 🎨 Screenshots
-
-### Home Page
-Clean landing with wallet connection
-
-### Dashboard
-View all pools with ENS names
-
-### Create Pool
-Form with ENS input and auto-resolution
-
-### Pool Detail
-Real-time progress, contributor list, finalization
-
----
-
-## 🏗️ Development
-
-### Running Locally
-```bash
-npm run dev
-```
-
-### Building for Production
-```bash
-npm run build
-npm start
-```
-
-### Linting
-```bash
-npm run lint
-```
-
----
-
-## 🤝 Team Workflow
-
-### Frontend Team (✅ Complete)
-- All UI components implemented
-- ENS integration complete
-- DEBUG mode working
-- Documentation written
-
-### Backend/Contract Team (📝 In Progress)
-- Follow [INTEGRATION_GUIDE.md](./INTEGRATION_GUIDE.md)
-- Implement smart contracts
-- Integrate with frontend via `pool-service.ts`
-
-### Demo Team
-- Follow [DEMO_GUIDE.md](./DEMO_GUIDE.md)
-- Practice 3-minute pitch
-- Prepare for judge questions
-
----
-
-## 🔐 Security
-
-### Current (DEBUG Mode)
-- No real funds at risk
-- Mock data only
-- For demo purposes
-
-### Production Recommendations
-- Audit smart contracts
-- Test on testnets first
-- Implement timeout mechanism
-- Add emergency pause function
-- Consider privacy solutions (TEE/FHE)
+- **[Architecture Diagrams](./docs/ARCHITECTURE_DIAGRAMS.md)** - Complete system flows with Mermaid diagrams
+- **[Setup Guide](./docs/QUICKSTART.md)** - Installation and configuration
+- **[Integration Details](./docs/INTEGRATION_GUIDE.md)** - Smart contract integration
+- **[Demo Guide](./docs/DEMO_GUIDE.md)** - How to demo the project
 
 ---
 
 ## 🌐 Deployment
 
-### Vercel (Recommended)
-1. Push to GitHub
-2. Import in Vercel
-3. Set environment variables
-4. Deploy
+**Live App**: https://secsanta.vercel.app
 
-### Environment Variables
-```env
-NEXT_PUBLIC_FE_DEBUG_MODE=false
-NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=prod_id
-NEXT_PUBLIC_POOL_CONTRACT_ADDRESS=0x...
-NEXT_PUBLIC_CHAIN_ID=1
-```
-
----
-
-## 📊 Bounty Checklist
-
-### ENS Bounty
-- [x] useEnsName hook integrated
-- [x] useEnsAddress hook integrated
-- [x] ENS Display component
-- [x] ENS Input component
-- [x] Works on mainnet (chainId: 1)
-- [x] Documentation
-- [ ] Live deployment
-- [ ] Demo video
-
-### BuidlGuidl Bounty
-- [x] Next.js 14
-- [x] TypeScript
-- [x] Wagmi v2
-- [x] RainbowKit
-- [x] Clean code
-- [x] Documentation
-- [ ] Smart contract integration
-- [ ] Live deployment
-
-### Base Miniapp (Optional)
-- [x] Social mechanics
-- [x] Shareable links
-- [x] Mobile-responsive
-- [ ] Farcaster Frame adaptation
-- [ ] Social share buttons
-
----
-
-## 🎯 Next Steps
-
-### Before Submission
-1. [ ] Deploy to Vercel
-2. [ ] Test on mainnet (ENS resolution)
-3. [ ] Create demo video (3 min)
-4. [ ] Polish UI (final touches)
-5. [ ] Test complete user flow
-
-### Optional Enhancements
-1. [ ] Integrate smart contracts
-2. [ ] Add Farcaster Frame support
-3. [ ] Implement privacy features (TEE/FHE)
-4. [ ] Add analytics
-5. [ ] Create promotional materials
-
----
-
-## 📞 Support
-
-- **Issues**: GitHub Issues
-- **Questions**: See documentation
-- **Demo Help**: [DEMO_GUIDE.md](./DEMO_GUIDE.md)
+**Deployed Contracts**:
+- iExec Pool (Arbitrum Sepolia): `0xEC5Db14bFE52cF395a8778D32c25E59a2bD364B8`
+- Zama Token (Sepolia): `0xCee0c15B42EEb44491F588104bbC46812115dBB0`
+- Zama Pool (Sepolia): `0xE45d459Fc44c2B5326Bcef9F10028Bc252Bc2fd0`
 
 ---
 
 ## 📄 License
 
-MIT License - feel free to fork and build!
+MIT License
 
 ---
 
-## 🎉 Credits
+## 🎉 Built For
 
-Built with ❤️ for ETHRome 2025
+**ETHRome 2025** - Pushing the boundaries of privacy-preserving DeFi
 
-**Technologies**:
-- [Next.js](https://nextjs.org/)
-- [RainbowKit](https://rainbowkit.com/)
-- [Wagmi](https://wagmi.sh/)
-- [Viem](https://viem.sh/)
-- [ENS](https://ens.domains/)
-- [Tailwind CSS](https://tailwindcss.com/)
-
----
-
-**Let's win those bounties! 🏆**
+**Technologies**: Next.js • iExec DataProtector • Zama fhEVM • RainbowKit • Wagmi • Solidity
