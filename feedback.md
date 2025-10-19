@@ -1,0 +1,9 @@
+# iExec DataProtector Feedback
+
+## Developer Experience
+
+The iExec DataProtector SDK (`@iexec/dataprotector`) provides an elegant abstraction for client-side encryption with minimal friction. The `IExecDataProtectorCore` class made it straightforward to encrypt contribution data with just a few lines of code, and the automatic IPFS upload + Protected Data NFT minting worked seamlessly on Arbitrum Sepolia. The documentation at https://tools.docs.iex.ec/tools/dataprotector was comprehensive, with clear examples that accelerated our integration. We particularly appreciated that the SDK handles the complex TEE orchestration behind a simple JavaScript API - calling `protectData()` and receiving back an NFT address abstracted away the cryptographic complexity. The network detection and error messages were helpful for guiding users to Arbitrum Sepolia when needed.
+
+## Areas for Improvement
+
+While the core functionality worked well, we encountered some challenges that could be improved for future hackathons. The initial setup required understanding the relationship between Protected Data NFTs, IPFS storage, and the encryption schema, which took some trial and error - a visual diagram in the docs showing this flow would help. Additionally, the RLC faucet occasionally had rate limiting issues during testing, which slowed development iterations. We implemented graceful fallback handling (continuing pool creation even if encryption fails) to work around intermittent service issues, though this was more of a production consideration. More example integrations with DeFi use cases (like our gift pooling) would also help developers see concrete patterns for protecting financial data. Overall, DataProtector delivered on its promise of "encryption without being a cryptography expert" and enabled us to build a privacy-preserving application in a short timeframe.
