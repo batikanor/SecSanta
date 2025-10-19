@@ -1,0 +1,55 @@
+graph TB
+    subgraph "Frontend - Next.js 14"
+        UI[User Interface<br/>fe/app/]
+        Wallet[Wallet Connection<br/>RainbowKit + Wagmi<br/>fe/lib/wagmi.ts]
+        PoolService[Pool Service Router<br/>fe/lib/pool-service.ts]
+    end
+
+    subgraph "Privacy Mode Selection"
+        Toggle[Privacy Toggle<br/>fe/lib/privacy-config.ts]
+        Toggle -->|iExec Mode| IExecPath[iExec Flow]
+        Toggle -->|Zama Mode| ZamaPath[Zama Flow]
+    end
+
+    subgraph "iExec Mode - Arbitrum Sepolia"
+        DataProtector[iExec DataProtector SDK<br/>Client-side AES-256 Encryption<br/>fe/lib/iexec-dataprotector.ts]
+        SecSantaContract[SecSantaPool Contract<br/>0xEC5Db14bFE52cF395a8778D32c25E59a2bD364B8<br/>fe/contracts/SecSantaPool.sol]
+        IExecNFT[Protected Data NFT<br/>Encrypted contribution storage]
+        TEE[TEE Workers<br/>Intel SGX/TDX<br/>Off-chain computation]
+    end
+
+    subgraph "Zama Mode - Sepolia"
+        ZamaSDK[Zama fhEVM SDK<br/>Homomorphic Encryption<br/>fe/lib/zama-service.ts]
+        BCT[BirthdayConfidentialToken<br/>0xCee0c15B42EEb44491F588104bbC46812115dBB0<br/>backend/contracts/BirthdayConfidentialToken.sol]
+        PoolContract[ContributionPool Contract<br/>0xE45d459Fc44c2B5326Bcef9F10028Bc252Bc2fd0<br/>backend/contracts/ContributionPool.sol]
+        KMS[KMS Oracle<br/>Decryption at finalization]
+    end
+
+    subgraph "Data Layer"
+        Upstash[(Upstash Redis<br/>Pool metadata storage<br/>fe/lib/debug-data.ts)]
+        Blockchain1[(Arbitrum Sepolia<br/>Chain ID: 421614)]
+        Blockchain2[(Sepolia<br/>Chain ID: 11155111)]
+    end
+
+    UI --> Wallet
+    Wallet --> PoolService
+    PoolService --> Toggle
+
+    IExecPath --> DataProtector
+    DataProtector --> IExecNFT
+    IExecNFT --> SecSantaContract
+    SecSantaContract --> TEE
+    SecSantaContract --> Blockchain1
+
+    ZamaPath --> ZamaSDK
+    ZamaSDK --> BCT
+    BCT --> PoolContract
+    PoolContract --> KMS
+    PoolContract --> Blockchain2
+
+    PoolService --> Upstash
+
+    style DataProtector fill:#e1f5ff
+    style ZamaSDK fill:#ffe1f5
+    style SecSantaContract fill:#90EE90
+    style PoolContract fill:#FFB6C1
