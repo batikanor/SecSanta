@@ -2,11 +2,11 @@
 
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import Link from 'next/link';
-import { Gift, Trash2, Coins } from 'lucide-react';
+import { Gift, Trash2 } from 'lucide-react';
 import { clearMockData } from '@/lib/debug-data';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { getNetworkMode, type NetworkMode, NETWORK_CONFIG, isZamaMode } from '@/lib/network-config';
+import { getNetworkMode, type NetworkMode, NETWORK_CONFIG } from '@/lib/network-config';
 
 export function Header() {
   const router = useRouter();
@@ -49,16 +49,6 @@ export function Header() {
           </Link>
 
           <div className="flex items-center space-x-4">
-            {mounted && isZamaMode() && (
-              <Link
-                href="/mint"
-                className="text-xs px-3 py-1.5 bg-cyan-500 hover:bg-cyan-600 text-white rounded-md transition-colors flex items-center gap-1 font-medium"
-                title="Mint confidential tokens for Zama FHE"
-              >
-                <Coins className="w-3 h-3" />
-                <span className="hidden sm:inline">Mint Tokens</span>
-              </Link>
-            )}
             {mounted && networkMode === 'mock' && (
               <button
                 onClick={handleClearData}
