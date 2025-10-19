@@ -3,7 +3,7 @@
  * Manages network modes: Mock, Sepolia, Mainnet
  */
 
-export type NetworkMode = 'mock' | 'sepolia' | 'arbitrum-sepolia' | 'mainnet';
+export type NetworkMode = 'mock' | 'sepolia' | 'sepolia-zama' | 'arbitrum-sepolia' | 'mainnet';
 
 export interface NetworkConfig {
   label: string;
@@ -12,6 +12,7 @@ export interface NetworkConfig {
   chainId: number | null;
   ensSupported: boolean;
   description: string;
+  usesZama?: boolean; // Flag for Zama FHE networks
 }
 
 export const NETWORK_CONFIG: Record<NetworkMode, NetworkConfig> = {
@@ -30,6 +31,15 @@ export const NETWORK_CONFIG: Record<NetworkMode, NetworkConfig> = {
     chainId: 11155111,
     ensSupported: true,
     description: 'Ethereum testnet - Free testing with real blockchain',
+  },
+  'sepolia-zama': {
+    label: 'Sepolia (Zama FHE)',
+    shortLabel: 'ZAMA',
+    color: 'cyan',
+    chainId: 11155111,
+    ensSupported: true,
+    usesZama: true,
+    description: 'Sepolia with Zama fhEVM - Fully encrypted contributions using confidential tokens',
   },
   'arbitrum-sepolia': {
     label: 'Arbitrum Sepolia',
@@ -58,7 +68,7 @@ const NETWORK_MODE_KEY = 'secsanta-network-mode';
 export function getNetworkMode(): NetworkMode {
   if (typeof window !== 'undefined') {
     const stored = localStorage.getItem(NETWORK_MODE_KEY) as NetworkMode;
-    if (stored && (stored === 'mock' || stored === 'sepolia' || stored === 'arbitrum-sepolia' || stored === 'mainnet')) {
+    if (stored && (stored === 'mock' || stored === 'sepolia' || stored === 'sepolia-zama' || stored === 'arbitrum-sepolia' || stored === 'mainnet')) {
       return stored;
     }
     // Default to Sepolia (safe for testing)
@@ -122,4 +132,12 @@ export function getNetworkColor(): string {
 export function getNetworkLabel(): string {
   const mode = getNetworkMode();
   return NETWORK_CONFIG[mode].label;
+}
+
+/**
+ * Check if current network uses Zama FHE
+ */
+export function isZamaMode(): boolean {
+  const mode = getNetworkMode();
+  return NETWORK_CONFIG[mode].usesZama || false;
 }

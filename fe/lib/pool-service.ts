@@ -24,12 +24,25 @@ import {
   finalizePoolOnChain,
   isContractDeployed,
 } from './contract-service';
+import { ZamaPoolService } from './zama-pool-service';
 
 export class PoolService {
+  /**
+   * Check if we should use Zama service
+   */
+  private static shouldUseZama(): boolean {
+    return getPrivacyMode() === 'zama';
+  }
+
   /**
    * Fetch all pools
    */
   static async getPools(): Promise<Pool[]> {
+    // If Zama mode, use Zama service
+    if (this.shouldUseZama()) {
+      return await ZamaPoolService.getPools();
+    }
+
     // Add delay in mock mode only
     if (isMockMode()) {
       await simulateTransactionDelay();
@@ -44,15 +57,25 @@ export class PoolService {
    * Get a specific pool by ID
    */
   static async getPool(poolId: string): Promise<Pool | null> {
+    // First, check what pool this is by loading from storage
+    const pool = await getMockPool(poolId);
+    
+    if (!pool) {
+      return null;
+    }
+
+    // If this is a Zama pool, use Zama service to fetch on-chain data
+    if (pool.privacyMode === 'zama') {
+      return await ZamaPoolService.getPool(poolId);
+    }
+
     // Add delay in mock mode only
     if (isMockMode()) {
       await simulateTransactionDelay();
     }
 
-    // For now, use the same storage (Upstash) regardless of network mode
-    // When smart contracts are deployed, this will query the blockchain
-    const pool = await getMockPool(poolId);
-    return pool || null;
+    // Return the pool from storage
+    return pool;
   }
 
   /**
@@ -62,6 +85,11 @@ export class PoolService {
     data: CreatePoolFormData,
     creatorAddress: string
   ): Promise<{ success: boolean; poolId?: string; error?: string }> {
+    // If Zama mode, use Zama service
+    if (this.shouldUseZama()) {
+      return await ZamaPoolService.createPool(data, creatorAddress);
+    }
+
     // Add delay in mock mode only
     if (isMockMode()) {
       await simulateTransactionDelay();
@@ -196,6 +224,11 @@ export class PoolService {
     data: JoinPoolFormData,
     contributorAddress: string
   ): Promise<{ success: boolean; error?: string }> {
+    // If Zama mode, use Zama service
+    if (this.shouldUseZama()) {
+      return await ZamaPoolService.contributeToPool(data, contributorAddress);
+    }
+
     // Add delay in mock mode only
     if (isMockMode()) {
       await simulateTransactionDelay();
@@ -340,12 +373,17 @@ export class PoolService {
   }
 
   /**
-   * Finalize a pool (for iExec mode, this triggers TEE computation and on-chain transfer)
+   * Finalize a pool (for iExec/Zama mode, this triggers TEE computation/decryption and on-chain transfer)
    */
   static async finalizePool(
     poolId: string,
     finalizerAddress: string
   ): Promise<{ success: boolean; error?: string; txHash?: string }> {
+    // If Zama mode, use Zama service
+    if (this.shouldUseZama()) {
+      return await ZamaPoolService.finalizePool(poolId, finalizerAddress);
+    }
+
     const pool = await getMockPool(poolId);
     if (!pool) {
       return { success: false, error: 'Pool not found' };

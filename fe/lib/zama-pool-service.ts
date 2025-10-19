@@ -5,6 +5,7 @@
 
 'use client';
 
+import { ethers } from 'ethers';
 import { Pool, CreatePoolFormData, JoinPoolFormData } from '@/types/pool';
 import { isZamaMode } from './network-config';
 import {
@@ -192,14 +193,33 @@ export class ZamaPoolService {
 
       // Finalize on-chain (triggers decryption and transfer)
       const poolIdNum = parseInt(poolId);
-      const result = await finalizeZamaPool(poolIdNum);
+      const result = await finalizeZamaPool(poolIdNum, true); // Wait for decryption
 
-      // Update pool status
-      await updateMockPool(poolId, {
+      // Update pool status with decrypted total if available
+      const updateData: Partial<Pool> = {
         status: 'finalized',
         finalizedAt: Date.now(),
         finalizationTxHash: result.txHash,
-      });
+      };
+
+      // Add decrypted total if available
+      if (result.totalAmount && result.totalAmount !== '0') {
+        try {
+          // Convert from wei to BCT (6 decimals) using ethers for precision
+          const totalInBCT = ethers.formatUnits(result.totalAmount, 6);
+          updateData.totalAmount = totalInBCT;
+          console.log('💰 Decrypted total:', totalInBCT, 'BCT (raw wei:', result.totalAmount, ')');
+        } catch (error) {
+          console.error('Failed to convert total amount:', error);
+        }
+      } else {
+        console.warn('⚠️ Decrypted total is 0 - this might indicate:');
+        console.warn('   1. KMS callback not completed yet');
+        console.warn('   2. No contributions were actually made on-chain');
+        console.warn('   3. Contract state issue');
+      }
+
+      await updateMockPool(poolId, updateData);
 
       return {
         success: true,
@@ -238,9 +258,24 @@ export class ZamaPoolService {
           const poolIdNum = parseInt(poolId);
           const onChainData = await getZamaPool(poolIdNum);
           
-          // Update with decrypted total
+          console.log('🔍 Checking finalized pool on-chain:', {
+            poolId,
+            totalPlain: onChainData.totalPlain,
+            contributorCount: onChainData.contributorCount,
+          });
+          
+          // Update with decrypted total if available
           if (onChainData.totalPlain !== '0') {
-            pool.totalAmount = onChainData.totalPlain;
+            // Convert from wei to BCT using ethers for precision
+            const totalInBCT = ethers.formatUnits(onChainData.totalPlain, 18);
+            pool.totalAmount = totalInBCT;
+            
+            // Update database with the total if not already there
+            if (!pool.totalAmount || pool.totalAmount === '0') {
+              await updateMockPool(poolId, { totalAmount: totalInBCT });
+            }
+          } else {
+            console.warn('⚠️ totalPlain is still 0 for finalized pool - KMS callback may not have completed');
           }
         } catch (error) {
           console.warn('Could not fetch on-chain data:', error);

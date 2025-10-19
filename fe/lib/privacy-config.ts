@@ -41,9 +41,9 @@ export const PRIVACY_CONFIG: Record<PrivacyMode, PrivacyConfig> = {
     label: 'Zama (FHE)',
     shortLabel: 'ZAMA',
     color: 'indigo',
-    description: 'Fully Homomorphic Encryption - compute on encrypted data',
-    enabled: false, // Will enable when teammate completes implementation
-    networks: ['sepolia', 'mainnet'], // fhEVM works on Sepolia and Mainnet
+    description: 'Fully Homomorphic Encryption - compute on encrypted data (Sepolia)',
+    enabled: true, // ✅ ENABLED - Integration complete!
+    networks: ['sepolia'], // fhEVM deployed on Sepolia testnet
   },
 } as const;
 

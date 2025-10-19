@@ -148,6 +148,77 @@ export async function clearMockData(): Promise<void> {
   }
 }
 
+/**
+ * Clear only Zama pools from storage
+ * Useful for cleaning up old/test Zama pools
+ */
+export async function clearZamaPools(): Promise<void> {
+  if (typeof window === 'undefined') return;
+  
+  try {
+    const pools = getPoolsFromStorage();
+    // Keep only non-Zama pools
+    const filteredPools = pools.filter(p => p.privacyMode !== 'zama');
+    savePoolsToStorage(filteredPools);
+    
+    console.log(`Cleared ${pools.length - filteredPools.length} Zama pool(s)`);
+  } catch (error) {
+    console.error('Failed to clear Zama pools:', error);
+  }
+}
+
+/**
+ * Clear only old Zama pools (without contract address or with wrong contract)
+ * Keeps current Zama pools
+ */
+export async function clearOldZamaPools(currentContractAddress: string): Promise<void> {
+  if (typeof window === 'undefined') return;
+  
+  try {
+    const pools = getPoolsFromStorage();
+    // Keep pools that are:
+    // - Not Zama pools, OR
+    // - Zama pools with matching contract address
+    const filteredPools = pools.filter(p => {
+      if (p.privacyMode !== 'zama') return true;
+      return p.contractAddress && p.contractAddress.toLowerCase() === currentContractAddress.toLowerCase();
+    });
+    
+    const removedCount = pools.length - filteredPools.length;
+    if (removedCount > 0) {
+      savePoolsToStorage(filteredPools);
+      console.log(`Cleared ${removedCount} old Zama pool(s) from previous contract deployments`);
+    }
+  } catch (error) {
+    console.error('Failed to clear old Zama pools:', error);
+  }
+}
+
+/**
+ * Get all Zama pools
+ */
+export async function getZamaPools(): Promise<Pool[]> {
+  const pools = await getMockPools();
+  return pools.filter(p => p.privacyMode === 'zama');
+}
+
+/**
+ * Delete a specific pool by ID
+ */
+export async function deletePool(poolId: string): Promise<void> {
+  if (typeof window === 'undefined') return;
+  
+  try {
+    const pools = getPoolsFromStorage();
+    const filteredPools = pools.filter(p => p.id !== poolId);
+    savePoolsToStorage(filteredPools);
+    
+    console.log(`Deleted pool: ${poolId}`);
+  } catch (error) {
+    console.error('Failed to delete pool:', error);
+  }
+}
+
 // Simulate ENS resolution
 export function mockResolveEnsName(address: string): string | undefined {
   return MOCK_ENS_NAMES[address.toLowerCase()];

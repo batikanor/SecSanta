@@ -19,6 +19,7 @@ export interface Pool {
   creationTxHash?: string; // Transaction hash for pool creation
   finalizationTxHash?: string; // Transaction hash for pool finalization
   blockNumber?: number; // Block number where pool was created
+  contractAddress?: string; // Contract address pool was created with (for validation)
 }
 
 export interface Contributor {
