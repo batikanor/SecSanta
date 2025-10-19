@@ -11,6 +11,12 @@ const nextConfig = {
     };
     config.externals.push('pino-pretty', 'lokijs', 'encoding');
     
+    // Exclude Zama SDK from server bundle to avoid 'self is not defined' errors
+    if (isServer) {
+      config.externals.push('@zama-fhe/relayer-sdk');
+      config.externals.push('@zama-fhe/relayer-sdk/web');
+    }
+    
     // Add polyfills for browser using Next.js's webpack
     if (!isServer) {
       config.plugins.push(

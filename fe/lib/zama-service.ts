@@ -8,7 +8,18 @@
 'use client';
 
 import { ethers } from 'ethers';
-import { initSDK, createInstance, FhevmInstance } from '@zama-fhe/relayer-sdk/web';
+
+// Only import Zama SDK on client side
+let initSDK: any;
+let createInstance: any;
+let FhevmInstance: any;
+
+if (typeof window !== 'undefined') {
+  const zamaSDK = require('@zama-fhe/relayer-sdk/web');
+  initSDK = zamaSDK.initSDK;
+  createInstance = zamaSDK.createInstance;
+  FhevmInstance = zamaSDK.FhevmInstance;
+}
 
 // Import ABIs
 import ContributionPoolABI from '@/contracts/ContributionPool.abi.json';
@@ -16,7 +27,7 @@ import BirthdayConfidentialTokenABI from '@/contracts/BirthdayConfidentialToken.
 import zamaDeployment from '@/contracts/zama-deployment.json';
 
 // Cached FHEVM instance and initialization status
-let fhevmInstance: FhevmInstance | null = null;
+let fhevmInstance: any | null = null;
 let sdkInitialized = false;
 
 // Contract addresses on Sepolia
@@ -38,7 +49,16 @@ function getProvider(): ethers.BrowserProvider {
  * Get FHEVM instance for encryption
  * Configuration from official Zama docs: https://docs.zama.ai/protocol/relayer-sdk-guides/fhevm-relayer/initialization
  */
-async function getFhevmInstance(): Promise<FhevmInstance> {
+async function getFhevmInstance(): Promise<any> {
+  // Ensure we're on the client side
+  if (typeof window === 'undefined') {
+    throw new Error('Zama SDK can only be used on the client side');
+  }
+  
+  if (!initSDK || !createInstance) {
+    throw new Error('Zama SDK not loaded. This should only be called on the client side.');
+  }
+  
   if (!fhevmInstance) {
     // CRITICAL: Initialize the SDK first to load WASM
     if (!sdkInitialized) {
