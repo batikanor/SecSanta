@@ -7,6 +7,8 @@ import { useEffect, useState } from "react";
 import { useAccount } from "wagmi";
 import { getNetworkMode } from "@/lib/network-config";
 
+export const dynamic = 'force-dynamic';
+
 export default function HomePage() {
   const { isConnected } = useAccount();
   const router = useRouter();

@@ -11,6 +11,8 @@ import { Pool } from '@/types/pool';
 import { PoolService } from '@/lib/pool-service';
 import { formatDate } from '@/lib/utils';
 
+export const dynamic = 'force-dynamic';
+
 export default function DashboardPage() {
   const { address, isConnected } = useAccount();
   const router = useRouter();
