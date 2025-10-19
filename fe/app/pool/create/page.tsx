@@ -203,7 +203,7 @@ export default function CreatePoolPage() {
             {/* Self Contribution */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Your Contribution ({isZamaMode() ? 'BCT' : 'ETH'}) <span className="text-red-500">*</span>
+                Your Contribution ({isZamaMode() ? 'BCT' : 'BCT'}) <span className="text-red-500">*</span>
               </label>
               <input
                 type="number"
