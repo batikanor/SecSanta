@@ -279,7 +279,7 @@ export async function createZamaPool(data: {
       wei: amountInWei.toString(),
     });
     
-    const input = fhevm.createEncryptedInput(POOL_ADDRESS, signerAddress);
+    const input = fhevm.createEncryptedInput(TOKEN_ADDRESS, signerAddress);
     input.add64(amountInWei);
     const encryptedInput = await input.encrypt();
     
@@ -374,7 +374,7 @@ export async function contributeToZamaPool(
     // Get FHEVM instance and encrypt contribution amount
     const fhevm = await getFhevmInstance();
     const amountInWei = ethers.parseUnits(amount.toString(), 18);
-    const input = fhevm.createEncryptedInput(POOL_ADDRESS, signerAddress);
+    const input = fhevm.createEncryptedInput(TOKEN_ADDRESS, signerAddress);
     input.add64(amountInWei);
     const encryptedInput = await input.encrypt();
 
@@ -411,9 +411,12 @@ export async function contributeToZamaPool(
 
 /**
  * Finalize a pool and transfer funds to recipient
- * This will also trigger decryption of the total amount
+ * This will trigger decryption of the total amount via KMS oracle
  */
-export async function finalizeZamaPool(poolId: number): Promise<{ txHash: string }> {
+export async function finalizeZamaPool(
+  poolId: number,
+  decryptOffChain: boolean = true
+): Promise<{ txHash: string; totalAmount?: string }> {
   try {
     console.log('🎁 Finalizing Zama pool...', { poolId });
 
@@ -426,17 +429,48 @@ export async function finalizeZamaPool(poolId: number): Promise<{ txHash: string
     console.log('⏳ Waiting for finalization transaction...', tx.hash);
     const receipt = await tx.wait();
 
-    console.log('✅ Pool finalized! Total will be revealed after decryption.', {
+    console.log('✅ Pool finalized! Decryption request sent to KMS.', {
       txHash: receipt.hash,
     });
 
-    return { txHash: receipt.hash };
+    // Optionally wait for decryption to complete
+    let totalAmount: string | undefined;
+    if (decryptOffChain) {
+      try {
+        totalAmount = await decryptPoolTotalOffChain(pool, poolId);
+      } catch (error) {
+        console.warn('⚠️ Off-chain decryption failed:', error);
+      }
+    }
+
+    return { txHash: receipt.hash, totalAmount };
   } catch (error) {
     console.error('❌ Failed to finalize Zama pool:', error);
     throw new Error(
       `Failed to finalize pool: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
   }
+}
+
+async function decryptPoolTotalOffChain(pool: ethers.Contract, poolId: number): Promise<string> {
+  const handleRaw: string = await pool.poolTotalHandle(poolId);
+  if (handleRaw === ethers.ZeroHash) {
+    throw new Error('Pool total handle not available');
+  }
+  const handleHex = ethers.hexlify(handleRaw);
+  const fhevm = await getFhevmInstance();
+  const result = await fhevm.publicDecrypt([handleHex]);
+  const decrypted = result[handleHex];
+
+  if (decrypted === undefined) {
+    throw new Error('Relayer did not return a decrypted value');
+  }
+
+  const totalBigInt = BigInt(decrypted.toString());
+  console.log('✅ Off-chain decryption complete:', totalBigInt.toString(), 'wei');
+  console.log('   =', ethers.formatUnits(totalBigInt, 18), 'BCT');
+
+  return totalBigInt.toString();
 }
 
 /**
@@ -446,7 +480,7 @@ export async function getZamaPool(poolId: number): Promise<{
   name: string;
   creator: string;
   recipient: string;
-  totalPlain: string; // Only visible after finalization and decryption
+  totalPlain: string; // Raw wei value (not formatted) - Only visible after finalization and decryption
   minContributors: number;
   giftSuggestion: string;
   contributorCount: number;
@@ -458,11 +492,19 @@ export async function getZamaPool(poolId: number): Promise<{
     const [name, creator, recipient, totalPlain, minContributors, giftSuggestion, contributorCount, finalized] =
       await pool.getPool(poolId);
 
+    console.log('📊 Raw pool data from contract:', {
+      poolId,
+      name,
+      totalPlain: totalPlain.toString(),
+      contributorCount: Number(contributorCount),
+      finalized,
+    });
+
     return {
       name,
       creator,
       recipient,
-      totalPlain: ethers.formatUnits(totalPlain, 18),
+      totalPlain: totalPlain.toString(), // Keep as raw wei string for BigInt conversion later
       minContributors: Number(minContributors),
       giftSuggestion,
       contributorCount: Number(contributorCount),
@@ -514,4 +556,3 @@ export function getContractAddresses() {
     chainId: CHAIN_ID,
   };
 }
-
