@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Download, Upload, Copy, Check, ChevronDown, ChevronUp, Settings, Database, Network, Lock } from 'lucide-react';
+import { Download, Upload, Copy, Check, ChevronDown, ChevronUp, Settings, Database, Network, Lock, Trash2 } from 'lucide-react';
 import { exportPools, importPools, downloadPoolsAsFile, copyPoolsToClipboard } from '@/lib/demo-sync';
+import { clearZamaPools, clearOldZamaPools, getZamaPools } from '@/lib/debug-data';
 import { useRouter } from 'next/navigation';
 import { type NetworkMode, NETWORK_CONFIG, getNetworkMode, setNetworkMode } from '@/lib/network-config';
 import { type PrivacyMode, PRIVACY_CONFIG, getPrivacyMode, setPrivacyMode, getAvailablePrivacyModes } from '@/lib/privacy-config';
+import { getContractAddresses } from '@/lib/zama-service';
 
 const STORAGE_MODE_KEY = 'secsanta-storage-mode'; // 'local' or 'vercel-kv'
 
@@ -15,6 +17,7 @@ export function DebugPanel() {
   const [importText, setImportText] = useState('');
   const [importError, setImportError] = useState('');
   const [mounted, setMounted] = useState(false);
+  const [zamaPoolCount, setZamaPoolCount] = useState(0);
 
   // Use constant defaults, will be updated from localStorage in useEffect
   const [storageMode, setStorageMode] = useState<'local' | 'vercel-kv'>('vercel-kv');
@@ -39,7 +42,17 @@ export function DebugPanel() {
     setNetworkModeState(savedNetwork);
     setPrivacyModeState(savedPrivacy);
     setMounted(true);
+
+    // Count Zama pools
+    getZamaPools().then(pools => setZamaPoolCount(pools.length));
   }, []);
+
+  // Update Zama pool count when panel opens
+  useEffect(() => {
+    if (isOpen) {
+      getZamaPools().then(pools => setZamaPoolCount(pools.length));
+    }
+  }, [isOpen]);
 
   const toggleStorageMode = () => {
     const newValue = storageMode === 'local' ? 'vercel-kv' : 'local';
@@ -57,6 +70,13 @@ export function DebugPanel() {
   const handlePrivacyChange = (newMode: PrivacyMode) => {
     setPrivacyModeState(newMode);
     setPrivacyMode(newMode);
+    
+    // Zama requires Sepolia network - auto-switch if needed
+    if (newMode === 'zama' && networkMode !== 'sepolia') {
+      setNetworkMode('sepolia');
+      setNetworkModeState('sepolia');
+    }
+    
     window.location.reload();
   };
 
@@ -84,6 +104,29 @@ export function DebugPanel() {
     }
   };
 
+  const handleClearZamaPools = async () => {
+    if (zamaPoolCount === 0) {
+      return;
+    }
+    
+    if (confirm(`Clear all ${zamaPoolCount} Zama pool(s)? This will remove only Zama FHE pools from storage.`)) {
+      await clearZamaPools();
+      setZamaPoolCount(0);
+      window.location.reload();
+    }
+  };
+
+  const handleClearOldZamaPools = async () => {
+    const { pool: currentPoolAddress } = getContractAddresses();
+    if (confirm('Clear old Zama pools from previous contract deployments? This keeps pools from the current contract.')) {
+      await clearOldZamaPools(currentPoolAddress);
+      // Update count
+      const remaining = await getZamaPools();
+      setZamaPoolCount(remaining.length);
+      window.location.reload();
+    }
+  };
+
   // Prevent hydration mismatch by not rendering until mounted
   if (!mounted) {
     return null;
@@ -92,7 +135,14 @@ export function DebugPanel() {
   if (!isOpen) {
     const isDevMode = storageMode === 'local' || networkMode !== 'mainnet';
     const networkConfig = NETWORK_CONFIG[networkMode];
-    const bgColor = networkMode === 'mock' ? 'bg-yellow-500' : networkMode === 'sepolia' ? 'bg-blue-500' : 'bg-green-500';
+    const isZamaActive = privacyMode === 'zama' && networkMode === 'sepolia';
+    const bgColor = isZamaActive 
+      ? 'bg-cyan-500' 
+      : networkMode === 'mock' 
+      ? 'bg-yellow-500' 
+      : networkMode === 'sepolia' 
+      ? 'bg-blue-500' 
+      : 'bg-green-500';
 
     return (
       <button
@@ -109,6 +159,7 @@ export function DebugPanel() {
           {networkMode !== 'mock' && privacyMode !== 'none' && (
             <> / {PRIVACY_CONFIG[privacyMode].shortLabel}</>
           )}
+          {isZamaActive && ' 🔐'}
         </span>
       </button>
     );
@@ -229,11 +280,12 @@ export function DebugPanel() {
               {(['none', 'iexec', 'zama'] as const).map((mode) => {
                 const config = PRIVACY_CONFIG[mode];
                 const isSelected = privacyMode === mode;
-                const isDisabled = !config.enabled;
+                const isAvailable = config.networks.includes(networkMode);
+                const isDisabled = !config.enabled || !isAvailable;
                 const colorClasses = {
                   none: 'border-gray-500 bg-gray-50 text-gray-700',
                   iexec: 'border-purple-500 bg-purple-50 text-purple-700',
-                  zama: 'border-indigo-500 bg-indigo-50 text-indigo-700',
+                  zama: 'border-cyan-500 bg-cyan-50 text-cyan-700',
                 };
 
                 return (
@@ -252,10 +304,15 @@ export function DebugPanel() {
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium">{config.label}</span>
                       <div className="flex items-center gap-2">
-                        {isDisabled && <span className="text-xs">Coming Soon</span>}
+                        {!config.enabled && <span className="text-xs">Coming Soon</span>}
+                        {config.enabled && !isAvailable && (
+                          <span className="text-xs text-orange-600">
+                            {mode === 'zama' ? 'Sepolia only' : 'Arb Sepolia'}
+                          </span>
+                        )}
                         {isSelected && !isDisabled && (
                           <div className={`w-2 h-2 rounded-full ${
-                            mode === 'none' ? 'bg-gray-500' : mode === 'iexec' ? 'bg-purple-500' : 'bg-indigo-500'
+                            mode === 'none' ? 'bg-gray-500' : mode === 'iexec' ? 'bg-purple-500' : 'bg-cyan-500'
                           }`} />
                         )}
                       </div>
@@ -265,6 +322,23 @@ export function DebugPanel() {
                 );
               })}
             </div>
+            
+            {/* Show network requirement message */}
+            {privacyMode === 'zama' && networkMode === 'sepolia' && (
+              <div className="mt-3 bg-cyan-50 border border-cyan-200 rounded-lg p-3">
+                <div className="flex items-start gap-2">
+                  <div className="text-lg">🔐</div>
+                  <div className="flex-1">
+                    <p className="text-xs font-semibold text-cyan-800 mb-1">
+                      Zama FHE Active
+                    </p>
+                    <p className="text-xs text-cyan-700">
+                      All contributions fully encrypted on Sepolia testnet using Zama Relayer SDK
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -366,6 +440,50 @@ export function DebugPanel() {
             <Upload className="w-4 h-4" />
             Import & Reload
           </button>
+        </div>
+
+        {/* Zama Pools Management */}
+        <div className="border-t pt-4">
+          <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+            <Lock className="w-4 h-4 text-cyan-600" />
+            Zama FHE Pools
+          </h4>
+          <p className="text-xs text-gray-600 mb-3">
+            Manage Zama encrypted pools in local storage:
+          </p>
+
+          <div className="bg-cyan-50 border border-cyan-200 rounded-md p-3 mb-2">
+            <p className="text-sm font-medium text-cyan-900">
+              {zamaPoolCount} Zama pool{zamaPoolCount !== 1 ? 's' : ''} stored
+            </p>
+            <p className="text-xs text-cyan-700 mt-1">
+              {zamaPoolCount > 0 
+                ? 'These are encrypted pools created with Zama FHE on Sepolia' 
+                : 'No Zama pools yet. Create one using Zama FHE privacy mode!'}
+            </p>
+          </div>
+
+          <div className="flex gap-2">
+            <button
+              onClick={handleClearOldZamaPools}
+              className="flex-1 px-3 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition-colors flex items-center justify-center gap-2 text-sm"
+            >
+              <Trash2 className="w-4 h-4" />
+              Clear Old
+            </button>
+            <button
+              onClick={handleClearZamaPools}
+              disabled={zamaPoolCount === 0}
+              className="flex-1 px-3 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors flex items-center justify-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Trash2 className="w-4 h-4" />
+              Clear All
+            </button>
+          </div>
+          <p className="text-xs text-gray-600 mt-2">
+            <strong>Clear Old:</strong> Removes pools from previous contracts<br/>
+            <strong>Clear All:</strong> Removes all Zama pools
+          </p>
         </div>
 
         {/* Instructions */}
