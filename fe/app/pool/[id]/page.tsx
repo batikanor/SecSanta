@@ -23,6 +23,8 @@ import { getArbiscanTxLink, getArbiscanAddressLink } from '@/lib/contract-servic
 import { getSepoliaTxLink, getSepoliaAddressLink } from '@/lib/zama-service';
 import { isZamaMode } from '@/lib/network-config';
 
+export const dynamic = 'force-dynamic';
+
 export default function PoolDetailPage() {
   const params = useParams();
   const poolId = params.id as string;
@@ -317,7 +319,7 @@ export default function PoolDetailPage() {
             <div className="mt-6 pt-6 border-t border-gray-200">
               <h3 className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
                 <CheckCircle className="w-4 h-4 text-green-600" />
-                Blockchain Verified (Arbitrum Sepolia)
+                Blockchain Verified (Sepolia)
               </h3>
 
               <div className="space-y-3">

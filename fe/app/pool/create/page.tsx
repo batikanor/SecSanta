@@ -11,6 +11,8 @@ import { CreatePoolFormData } from '@/types/pool';
 import { PoolService } from '@/lib/pool-service';
 import { isZamaMode } from '@/lib/network-config';
 
+export const dynamic = 'force-dynamic';
+
 export default function CreatePoolPage() {
   const { address, isConnected } = useAccount();
   const router = useRouter();
