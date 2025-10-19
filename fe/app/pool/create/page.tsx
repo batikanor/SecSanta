@@ -3,12 +3,13 @@
 import { useState } from 'react';
 import { useAccount } from 'wagmi';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Coins } from 'lucide-react';
 import Link from 'next/link';
 import { Header } from '@/components/Header';
 import { ENSInput } from '@/components/ENSInput';
 import { CreatePoolFormData } from '@/types/pool';
 import { PoolService } from '@/lib/pool-service';
+import { isZamaMode } from '@/lib/network-config';
 
 export default function CreatePoolPage() {
   const { address, isConnected } = useAccount();
@@ -86,6 +87,32 @@ export default function CreatePoolPage() {
         <div className="card">
           <h1 className="text-2xl font-bold text-gray-900 mb-6">Create Gift Pool</h1>
 
+          {isZamaMode() && (
+            <div className="mb-6 p-4 bg-cyan-50 border border-cyan-300 rounded-lg">
+              <div className="flex items-start gap-3">
+                <Coins className="w-5 h-5 text-cyan-600 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-semibold text-cyan-900 mb-1">🔐 Zama FHE Mode</p>
+                  <p className="text-sm text-cyan-800 mb-2">
+                    Before creating a pool, you need to mint confidential tokens and approve the pool contract:
+                  </p>
+                  <ol className="text-sm text-cyan-800 space-y-1 ml-4 mb-3">
+                    <li>1️⃣ Mint confidential BCT tokens</li>
+                    <li>2️⃣ Approve the pool contract as operator</li>
+                    <li>3️⃣ Then create your encrypted pool!</li>
+                  </ol>
+                  <Link 
+                    href="/mint"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-medium rounded transition-colors"
+                  >
+                    <Coins className="w-4 h-4" />
+                    Go to Mint Page
+                  </Link>
+                </div>
+              </div>
+            </div>
+          )}
+
           {error && (
             <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
               <p className="text-red-800 text-sm">{error}</p>
@@ -120,7 +147,7 @@ export default function CreatePoolPage() {
             {/* Self Contribution */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Your Contribution (ETH) <span className="text-red-500">*</span>
+                Your Contribution ({isZamaMode() ? 'BCT' : 'BCT'}) <span className="text-red-500">*</span>
               </label>
               <input
                 type="number"

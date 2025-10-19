@@ -176,7 +176,7 @@ export default function DashboardPage() {
                     {pool.status === 'finalized' && pool.totalAmount && (
                       <div className="flex items-center gap-1 text-secondary-600 font-medium">
                         <Gift className="w-4 h-4" />
-                        <span>{pool.totalAmount} ETH</span>
+                        <span>{pool.totalAmount} {pool.privacyMode === 'zama' ? 'BCT' : 'ETH'}</span>
                       </div>
                     )}
                   </div>

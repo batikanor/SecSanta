@@ -20,6 +20,8 @@ import { Pool } from '@/types/pool';
 import { PoolService } from '@/lib/pool-service';
 import { formatDate, truncateAddress } from '@/lib/utils';
 import { getArbiscanTxLink, getArbiscanAddressLink } from '@/lib/contract-service';
+import { getSepoliaTxLink, getSepoliaAddressLink } from '@/lib/zama-service';
+import { isZamaMode } from '@/lib/network-config';
 
 export default function PoolDetailPage() {
   const params = useParams();
@@ -35,6 +37,12 @@ export default function PoolDetailPage() {
   const [giftSuggestion, setGiftSuggestion] = useState('');
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
+
+  // Helper functions for Zama mode
+  const isZama = pool?.privacyMode === 'zama' || isZamaMode();
+  const currencyLabel = isZama ? 'BCT' : 'ETH';
+  const getTxLink = (txHash: string) => isZama ? getSepoliaTxLink(txHash) : getArbiscanTxLink(txHash);
+  const getAddressLink = (address: string) => isZama ? getSepoliaAddressLink(address) : getArbiscanAddressLink(address);
 
   useEffect(() => {
     if (!isConnected) {
@@ -245,7 +253,7 @@ export default function PoolDetailPage() {
                 <div className="flex items-center gap-2">
                   <Gift className="w-5 h-5 text-secondary-600" />
                   <span className="text-2xl font-bold text-secondary-600">
-                    {pool.totalAmount} ETH
+                    {pool.totalAmount} {currencyLabel}
                   </span>
                 </div>
               </div>
@@ -317,7 +325,7 @@ export default function PoolDetailPage() {
                 <div className="bg-blue-50 p-3 rounded-lg">
                   <p className="text-xs font-medium text-blue-900 mb-1">Smart Contract</p>
                   <a
-                    href={getArbiscanAddressLink(process.env.NEXT_PUBLIC_SECSANTA_CONTRACT_ADDRESS || '')}
+                    href={getAddressLink(process.env.NEXT_PUBLIC_SECSANTA_CONTRACT_ADDRESS || '')}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-blue-600 hover:text-blue-800 text-sm font-mono flex items-center gap-2"
@@ -332,7 +340,7 @@ export default function PoolDetailPage() {
                   <div className="bg-green-50 p-3 rounded-lg">
                     <p className="text-xs font-medium text-green-900 mb-1">Pool Creation Transaction</p>
                     <a
-                      href={getArbiscanTxLink(pool.creationTxHash)}
+                      href={getTxLink(pool.creationTxHash)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-green-600 hover:text-green-800 text-sm font-mono flex items-center gap-2 break-all"
@@ -376,7 +384,7 @@ export default function PoolDetailPage() {
             <form onSubmit={handleJoinPool} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Your Contribution (ETH)
+                  Your Contribution ({currencyLabel})
                 </label>
                 <input
                   type="number"
@@ -500,7 +508,7 @@ export default function PoolDetailPage() {
                       <div className="bg-white p-2 rounded border border-green-200">
                         <p className="text-xs font-medium text-green-900 mb-1">Blockchain Transaction</p>
                         <a
-                          href={getArbiscanTxLink(contributor.contributionTxHash)}
+                          href={getTxLink(contributor.contributionTxHash)}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-green-600 hover:text-green-800 text-xs font-mono flex items-center gap-1 break-all"
@@ -515,7 +523,7 @@ export default function PoolDetailPage() {
                       <div className="bg-white p-2 rounded border border-purple-200">
                         <p className="text-xs font-medium text-purple-900 mb-1">iExec Protected Data NFT</p>
                         <a
-                          href={getArbiscanAddressLink(contributor.protectedDataAddress)}
+                          href={getAddressLink(contributor.protectedDataAddress)}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-purple-600 hover:text-purple-800 text-xs font-mono flex items-center gap-1 break-all"
@@ -543,7 +551,7 @@ export default function PoolDetailPage() {
                 <p className="text-secondary-800 mb-3">
                   {pool.totalAmount && (
                     <>
-                      The total amount of <span className="font-bold">{pool.totalAmount} ETH</span> has
+                      The total amount of <span className="font-bold">{pool.totalAmount} {currencyLabel}</span> has
                       been transferred to <ENSDisplay address={pool.recipientAddress} className="font-bold" />.
                     </>
                   )}
@@ -562,7 +570,7 @@ export default function PoolDetailPage() {
                     Blockchain Transaction Proof - Funds Transferred
                   </p>
                   <a
-                    href={getArbiscanTxLink(pool.finalizationTxHash)}
+                    href={getTxLink(pool.finalizationTxHash)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-blue-600 hover:text-blue-800 underline text-sm break-all flex items-center gap-2"
@@ -571,7 +579,7 @@ export default function PoolDetailPage() {
                     <ExternalLink className="w-3 h-3" />
                   </a>
                   <p className="text-xs text-green-700 mt-2">
-                    ✅ Verified on Arbitrum Sepolia blockchain
+                    ✅ Verified on Sepolia blockchain
                   </p>
                 </div>
               </>
