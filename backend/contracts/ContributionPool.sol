@@ -28,6 +28,7 @@ contract ContributionPool is Ownable, SepoliaConfig {
 
     uint256 public nextPoolId;
     mapping(uint256 => Pool) public pools;
+    mapping(uint256 => bytes32) public poolTotalHandle;
     mapping(uint256 => mapping(address => bool)) public hasContributed;
     mapping(uint256 => uint256) private _requestToPool;
 
@@ -40,7 +41,12 @@ contract ContributionPool is Ownable, SepoliaConfig {
         string giftSuggestion
     );
     event ContributionMade(uint256 indexed poolId, address indexed contributor, string giftSuggestion);
-    event PoolFinalizeRequested(uint256 indexed poolId, address indexed creator, address indexed recipient);
+    event PoolFinalizeRequested(
+        uint256 indexed poolId,
+        address indexed creator,
+        address indexed recipient,
+        bytes32 encryptedTotalHandle
+    );
     event PoolFinalized(uint256 indexed poolId, address indexed creator, address indexed recipient, uint256 totalPlain);
 
     constructor(ConfidentialFungibleToken _token) Ownable(msg.sender) {
@@ -76,6 +82,8 @@ contract ContributionPool is Ownable, SepoliaConfig {
         Pool storage p = pools[poolId];
         _addContribution(poolId, p, msg.sender, encryptedContribution, contributionProof, giftSuggestion_);
 
+        pools[poolId].totalEnc = FHE.makePubliclyDecryptable(pools[poolId].totalEnc);
+
         emit PoolCreated(poolId, msg.sender, name_, recipient_, minContributors_, giftSuggestion_);
     }
 
@@ -105,23 +113,27 @@ contract ContributionPool is Ownable, SepoliaConfig {
         euint64 payout = p.totalEnc;
         payout = FHE.allowThis(payout);
         payout = FHE.allow(payout, address(token));
-        payout = FHE.allow(payout, p.recipient); // Allow recipient to receive encrypted transfer
 
-        bytes32[] memory cts = new bytes32[](1);
-        cts[0] = euint64.unwrap(payout);
-
-        uint256 requestId = FHE.requestDecryption(cts, this._callbackRevealTotal.selector);
-        _requestToPool[requestId] = poolId;
-
-        try token.confidentialTransfer(p.recipient, payout) returns (euint64) {
-            // noop: transfer succeeded
+        euint64 transferred;
+        try token.confidentialTransfer(p.recipient, payout) returns (euint64 value) {
+            transferred = value;
         } catch (bytes memory revertData) {
             revert PoolTokenTransferFailed(revertData);
         }
 
+        transferred = FHE.allowThis(transferred);
+        transferred = FHE.makePubliclyDecryptable(transferred);
+
+        bytes32[] memory cts = new bytes32[](1);
+        cts[0] = euint64.unwrap(transferred);
+
+        uint256 requestId = FHE.requestDecryption(cts, this._callbackRevealTotal.selector);
+        _requestToPool[requestId] = poolId;
+        poolTotalHandle[poolId] = cts[0];
+
         p.totalEnc = FHE.allowThis(FHE.asEuint64(0));
 
-        emit PoolFinalizeRequested(poolId, p.creator, p.recipient);
+        emit PoolFinalizeRequested(poolId, p.creator, p.recipient, cts[0]);
     }
 
     function _callbackRevealTotal(uint256 requestId, bytes memory cleartexts, bytes memory decryptionProof) external {
@@ -189,6 +201,7 @@ contract ContributionPool is Ownable, SepoliaConfig {
 
         euint64 newTotal = FHE.add(p.totalEnc, transferred);
         newTotal = FHE.allowThis(newTotal);
+        newTotal = FHE.makePubliclyDecryptable(newTotal);
         p.totalEnc = newTotal;
 
         p.contributorCount += 1;
