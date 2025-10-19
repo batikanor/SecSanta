@@ -108,8 +108,8 @@ async function getContracts(): Promise<{
   const provider = getProvider();
   const signer = await provider.getSigner();
 
-  const token = new ethers.Contract(TOKEN_ADDRESS, BirthdayConfidentialTokenABI, signer);
-  const pool = new ethers.Contract(POOL_ADDRESS, ContributionPoolABI, signer);
+  const token = new ethers.Contract(TOKEN_ADDRESS, (BirthdayConfidentialTokenABI as any).abi, signer);
+  const pool = new ethers.Contract(POOL_ADDRESS, (ContributionPoolABI as any).abi, signer);
 
   return { token, pool, signer };
 }
@@ -175,7 +175,7 @@ export async function mintTokens(
   amount: number
 ): Promise<{ txHash: string }> {
   try {
-    console.log('💎 Minting confidential tokens...', { recipientAddress, amount });
+    console.log('💎 Minting confidential tokens via faucet...', { amount });
 
     const { token, signer } = await getContracts();
     const signerAddress = await signer.getAddress();
@@ -189,9 +189,8 @@ export async function mintTokens(
     input.add64(amountInWei);
     const encryptedInput = await input.encrypt();
 
-    // Call mint function with encrypted amount
-    const tx = await token.mint(
-      recipientAddress,
+    // Call faucet function with encrypted amount (mints to msg.sender)
+    const tx = await token.faucet(
       encryptedInput.handles[0],
       encryptedInput.inputProof,
       {
@@ -199,14 +198,14 @@ export async function mintTokens(
       }
     );
 
-    console.log('⏳ Waiting for mint transaction...', tx.hash);
+    console.log('⏳ Waiting for faucet transaction...', tx.hash);
     const receipt = await tx.wait();
 
-    console.log('✅ Tokens minted successfully!', { txHash: receipt.hash });
+    console.log('✅ Tokens minted successfully from faucet!', { txHash: receipt.hash });
 
     return { txHash: receipt.hash };
   } catch (error) {
-    console.error('❌ Failed to mint tokens:', error);
+    console.error('❌ Failed to mint tokens from faucet:', error);
     throw new Error(
       `Failed to mint tokens: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
@@ -285,7 +284,34 @@ export async function createZamaPool(data: {
     const { pool, signer } = await getContracts();
     const signerAddress = await signer.getAddress();
 
-    // ALWAYS approve pool as operator before creating pool
+    // Step 1: Mint tokens from faucet (auto-setup)
+    console.log('💧 Auto-minting tokens from faucet...');
+    let mintingSucceeded = false;
+    try {
+      // Mint enough tokens for this pool plus some extra
+      const mintAmount = Math.max(data.initialContribution * 2, 5); // At least 2x contribution or 5 BCT
+      console.log(`  Attempting to mint ${mintAmount} BCT...`);
+      await mintTokens(signerAddress, mintAmount);
+      console.log(`✅ Successfully minted ${mintAmount} BCT from faucet`);
+      mintingSucceeded = true;
+    } catch (mintError: any) {
+      console.error('❌ Faucet minting failed:', mintError);
+      // If minting fails due to faucet limit, that's okay - user might already have tokens
+      if (mintError.message?.includes('Faucet limit exceeded')) {
+        console.log('ℹ️ Faucet limit reached, assuming user has tokens');
+      } else if (mintError.message?.includes('user rejected')) {
+        throw new Error('Transaction cancelled by user');
+      } else {
+        console.warn('⚠️ Continuing anyway - assuming user already has tokens');
+        console.warn('  Error details:', mintError.message);
+      }
+    }
+    
+    if (!mintingSucceeded) {
+      console.log('⚠️ WARNING: Proceeding without minting. This may fail if you don\'t have tokens.');
+    }
+
+    // Step 2: ALWAYS approve pool as operator before creating pool
     // (Operator approvals can expire, so we do this every time to be safe)
     console.log('🔑 Approving pool as operator (required for confidential transfers)...');
     await approvePoolAsOperator();
@@ -299,7 +325,9 @@ export async function createZamaPool(data: {
       wei: amountInWei.toString(),
     });
     
-    const input = fhevm.createEncryptedInput(TOKEN_ADDRESS, signerAddress);
+    // IMPORTANT: Create encrypted input for POOL contract (not token)
+    // The pool contract is the one that will call fromExternal() to decrypt
+    const input = fhevm.createEncryptedInput(POOL_ADDRESS, signerAddress);
     input.add64(amountInWei);
     const encryptedInput = await input.encrypt();
     
@@ -386,7 +414,34 @@ export async function contributeToZamaPool(
     const { pool, signer } = await getContracts();
     const signerAddress = await signer.getAddress();
 
-    // ALWAYS approve pool as operator before contributing
+    // Step 1: Mint tokens from faucet (auto-setup)
+    console.log('💧 Auto-minting tokens from faucet...');
+    let mintingSucceeded = false;
+    try {
+      // Mint enough tokens for this contribution plus some extra
+      const mintAmount = Math.max(amount * 2, 5); // At least 2x contribution or 5 BCT
+      console.log(`  Attempting to mint ${mintAmount} BCT...`);
+      await mintTokens(signerAddress, mintAmount);
+      console.log(`✅ Successfully minted ${mintAmount} BCT from faucet`);
+      mintingSucceeded = true;
+    } catch (mintError: any) {
+      console.error('❌ Faucet minting failed:', mintError);
+      // If minting fails due to faucet limit, that's okay - user might already have tokens
+      if (mintError.message?.includes('Faucet limit exceeded')) {
+        console.log('ℹ️ Faucet limit reached, assuming user has tokens');
+      } else if (mintError.message?.includes('user rejected')) {
+        throw new Error('Transaction cancelled by user');
+      } else {
+        console.warn('⚠️ Continuing anyway - assuming user already has tokens');
+        console.warn('  Error details:', mintError.message);
+      }
+    }
+    
+    if (!mintingSucceeded) {
+      console.log('⚠️ WARNING: Proceeding without minting. This may fail if you don\'t have tokens.');
+    }
+
+    // Step 2: ALWAYS approve pool as operator before contributing
     // (Operator approvals can expire, so we do this every time to be safe)
     console.log('🔑 Approving pool as operator (required for confidential transfers)...');
     await approvePoolAsOperator();
@@ -394,7 +449,9 @@ export async function contributeToZamaPool(
     // Get FHEVM instance and encrypt contribution amount
     const fhevm = await getFhevmInstance();
     const amountInWei = ethers.parseUnits(amount.toString(), 18);
-    const input = fhevm.createEncryptedInput(TOKEN_ADDRESS, signerAddress);
+    // IMPORTANT: Create encrypted input for POOL contract (not token)
+    // The pool contract is the one that will call fromExternal() to decrypt
+    const input = fhevm.createEncryptedInput(POOL_ADDRESS, signerAddress);
     input.add64(amountInWei);
     const encryptedInput = await input.encrypt();
 

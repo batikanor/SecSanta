@@ -2,14 +2,14 @@
   "network": "sepolia",
   "chainId": 11155111,
   "token": {
-    "address": "0xCee0c15B42EEb44491F588104bbC46812115dBB0",
+    "address": "0xA216b1A08669F285C4D713e575D5B490e86709D7",
     "name": "BirthdayConfidentialToken"
   },
   "pool": {
-    "address": "0xE45d459Fc44c2B5326Bcef9F10028Bc252Bc2fd0",
+    "address": "0xF9A2E41ee1B040A59E00594c02594542D7b05124",
     "name": "ContributionPool"
   },
-  "deploymentTx": "0x...",
-  "deployer": "0xa39B36fb839029d78b549043Ec0F3bD93a8BC29B",
-  "timestamp": "2025-10-19T06:35:00.000Z"
+  "deploymentTx": "0x47b75135cee93ab95ac26351b65a8fd1a53831a93784db251d005feeb92773f7",
+  "deployer": "0x8b916003D0C8F1f468a720BA4Ab5EA9678bc6e61",
+  "timestamp": "2025-10-19T13:20:00.000Z"
 }

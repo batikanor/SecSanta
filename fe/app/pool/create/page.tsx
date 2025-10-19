@@ -3,13 +3,14 @@
 import { useState } from 'react';
 import { useAccount } from 'wagmi';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Coins, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
 import { Header } from '@/components/Header';
 import { ENSInput } from '@/components/ENSInput';
 import { CreatePoolFormData } from '@/types/pool';
 import { PoolService } from '@/lib/pool-service';
 import { isZamaMode } from '@/lib/network-config';
+import { mintTokens, approvePoolAsOperator, checkNetwork, switchToSepolia } from '@/lib/zama-service';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,6 +19,10 @@ export default function CreatePoolPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
+  const [setupLoading, setSetupLoading] = useState(false);
+  const [setupMessage, setSetupMessage] = useState('');
+  const [tokensMinted, setTokensMinted] = useState(false);
+  const [poolApproved, setPoolApproved] = useState(false);
 
   const [formData, setFormData] = useState<CreatePoolFormData>({
     name: '',
@@ -26,6 +31,49 @@ export default function CreatePoolPage() {
     finalizationThreshold: 2,
     giftSuggestion: '',
   });
+
+  const handleMintAndApprove = async () => {
+    if (!address || !isConnected) {
+      setSetupMessage('Please connect your wallet first');
+      return;
+    }
+
+    setSetupLoading(true);
+    setSetupMessage('');
+
+    try {
+      // Check network
+      const correctNetwork = await checkNetwork();
+      if (!correctNetwork) {
+        setSetupMessage('Switching to Sepolia network...');
+        await switchToSepolia();
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+
+      // Step 1: Mint tokens (keep amount within euint64 range)
+      if (!tokensMinted) {
+        const quickSetupAmount = 5;
+        setSetupMessage(`Minting ${quickSetupAmount} BCT tokens...`);
+        await mintTokens(address, quickSetupAmount);
+        setTokensMinted(true);
+        setSetupMessage('✅ Tokens minted! Now approving pool contract...');
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+
+      // Step 2: Approve pool
+      if (!poolApproved) {
+        setSetupMessage('Approving pool contract...');
+        await approvePoolAsOperator();
+        setPoolApproved(true);
+        setSetupMessage('✅ Setup complete! You can now create pools.');
+      }
+    } catch (error) {
+      console.error('Setup error:', error);
+      setSetupMessage('❌ Setup failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    } finally {
+      setSetupLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -88,6 +136,38 @@ export default function CreatePoolPage() {
 
         <div className="card">
           <h1 className="text-2xl font-bold text-gray-900 mb-6">Create Gift Pool</h1>
+
+          {/* Zama FHE Automatic Setup Info */}
+          {isZamaMode() && (
+            <div className="mb-6 p-5 bg-gradient-to-r from-green-50 to-cyan-50 border-2 border-green-300 rounded-lg">
+              <div className="flex items-start gap-3">
+                <CheckCircle className="w-6 h-6 text-green-600 mt-0.5 flex-shrink-0" />
+                <div>
+                  <h3 className="font-bold text-green-900 mb-2">✨ Automatic Setup Enabled</h3>
+                  <p className="text-sm text-green-800 mb-2">
+                    When you create this pool, the following will happen automatically:
+                  </p>
+                  <ol className="text-sm text-green-800 space-y-1 ml-4">
+                    <li className="flex items-center gap-2">
+                      <span className="text-green-600">💧</span>
+                      Get BCT tokens from faucet (if needed)
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="text-green-600">🔑</span>
+                      Approve pool contract as operator
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="text-green-600">🎁</span>
+                      Create encrypted pool with your contribution
+                    </li>
+                  </ol>
+                  <p className="text-xs text-green-700 mt-3 italic">
+                    Just click &quot;Create Pool&quot; below and approve the transactions! 🚀
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {error && (
             <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">

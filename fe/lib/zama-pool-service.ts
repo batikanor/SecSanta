@@ -205,8 +205,8 @@ export class ZamaPoolService {
       // Add decrypted total if available
       if (result.totalAmount && result.totalAmount !== '0') {
         try {
-          // Convert from wei to BCT (6 decimals) using ethers for precision
-          const totalInBCT = ethers.formatUnits(result.totalAmount, 6);
+          // Convert from wei to BCT (18 decimals - standard ERC20) using ethers for precision
+          const totalInBCT = ethers.formatUnits(result.totalAmount, 18);
           updateData.totalAmount = totalInBCT;
           console.log('💰 Decrypted total:', totalInBCT, 'BCT (raw wei:', result.totalAmount, ')');
         } catch (error) {
