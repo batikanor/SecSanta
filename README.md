@@ -154,6 +154,7 @@ Open [http://localhost:3000](http://localhost:3000)
 
 ## 📚 Documentation
 
+- **[Architecture Diagrams](./docs/ARCHITECTURE_DIAGRAMS.md)** - Complete system flows with Mermaid diagrams
 - **[Setup Guide](./docs/QUICKSTART.md)** - Installation and configuration
 - **[Integration Details](./docs/INTEGRATION_GUIDE.md)** - Smart contract integration
 - **[Demo Guide](./docs/DEMO_GUIDE.md)** - How to demo the project
